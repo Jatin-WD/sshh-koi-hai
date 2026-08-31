@@ -1,0 +1,49 @@
+import "dotenv/config";
+import { z } from "zod";
+
+const envSchema = z.object({
+  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  PORT: z.coerce.number().int().positive().default(4000),
+  DATABASE_URL: z
+    .string()
+    .min(1)
+    .default("postgresql://postgres:postgres@localhost:5432/sshh_koi_hai"),
+  CLIENT_ORIGIN: z.string().min(1).default("http://localhost:5173"),
+  CORS_ORIGINS: z.string().optional(),
+  JWT_ACCESS_SECRET: z.string().min(1).default("change-me-access-secret"),
+  JWT_REFRESH_SECRET: z.string().min(1).default("change-me-refresh-secret"),
+  ACCESS_TOKEN_TTL: z.string().min(1).default("15m"),
+  REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
+  EMAIL_VERIFICATION_TTL_HOURS: z.coerce.number().int().positive().default(24),
+  PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().positive().default(60),
+  CLIENT_APP_URL: z.string().url().default("http://localhost:5173"),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().optional(),
+  SMTP_FROM_NAME: z.string().optional(),
+  RAZORPAY_KEY_ID: z.string().optional(),
+  RAZORPAY_KEY_SECRET: z.string().optional(),
+  RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
+  CLOUDINARY_CLOUD_NAME: z.string().optional(),
+  CLOUDINARY_API_KEY: z.string().optional(),
+  CLOUDINARY_API_SECRET: z.string().optional(),
+});
+
+export const env = envSchema.parse(process.env);
+
+if (env.NODE_ENV === "production") {
+  const weakDefaults = ["change-me-access-secret", "change-me-refresh-secret"];
+  if (!process.env.JWT_ACCESS_SECRET || !process.env.JWT_REFRESH_SECRET || weakDefaults.includes(env.JWT_ACCESS_SECRET) || weakDefaults.includes(env.JWT_REFRESH_SECRET)) throw new Error("Production JWT secrets must be explicitly configured");
+  if (!process.env.DATABASE_URL || env.DATABASE_URL.includes("localhost") || env.DATABASE_URL.includes("postgres:postgres")) throw new Error("Production DATABASE_URL must be explicitly configured");
+  if (!process.env.CLIENT_ORIGIN || !process.env.CLIENT_APP_URL || !process.env.CORS_ORIGINS) throw new Error("Production client origins must be explicitly configured");
+}
+
+export const corsOrigins = Array.from(
+  new Set(
+    [env.CLIENT_ORIGIN, ...(env.CORS_ORIGINS?.split(",") ?? [])]
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+  ),
+);

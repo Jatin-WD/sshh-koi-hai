@@ -1,0 +1,16 @@
+{
+  "name": "sshh-koi-hai",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "build": "npm run build -w server && npm run build -w client",
+    "dev:server": "npm run dev -w server",
+    "dev:client": "npm run dev -w client",
+    "prisma:generate": "npm run prisma:generate -w server",
+    "prisma:migrate": "npm run prisma:migrate -w server"
+    ,"prisma:seed": "npm run prisma:seed -w server"
+  }
+}

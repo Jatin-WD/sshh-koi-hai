@@ -1,0 +1,18 @@
+node_modules
+dist
+coverage
+.env
+.env.*
+!.env.example
+client/node_modules
+client/dist
+server/node_modules
+server/dist
+server/prisma/dev.db
+server/prisma/*.db
+server/prisma/*.db-journal
+server/prisma/migrations/*/steps.json
+*.log
+.DS_Store
+keys
+.env copy.example

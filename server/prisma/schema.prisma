@@ -1,0 +1,421 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum AccountStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  BANNED
+  DELETED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  NON_BINARY
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  SEPARATED
+  WIDOWED
+  PREFER_NOT_TO_SAY
+}
+
+enum LookingFor {
+  CHAT
+  DATING
+  RELATIONSHIP
+  MARRIAGE
+  FRIENDSHIP
+}
+
+enum ProfileVisibility {
+  VISIBLE
+  HIDDEN
+}
+
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
+enum PaymentProvider {
+  RAZORPAY
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum InterestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
+enum ReportTargetType {
+  USER
+  MESSAGE
+  CONVERSATION
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  RESOLVED
+  DISMISSED
+}
+
+enum BusinessModel {
+  EVERYONE_PAID
+  MEN_PAID_WOMEN_FREE
+  FREE_REGISTRATION_PAID_MESSAGING
+}
+
+enum AuthTokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  REFRESH_SESSION
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+}
+
+enum NotificationType {
+  INTEREST_RECEIVED
+  INTEREST_ACCEPTED
+  NEW_MATCH
+  NEW_MESSAGE
+  SUBSCRIPTION_EXPIRING
+  SUBSCRIPTION_EXPIRED
+  PROFILE_MODERATED
+  ACCOUNT_ALERT
+}
+
+model User {
+  id                String           @id @default(cuid())
+  email             String           @unique
+  passwordHash      String
+  displayName       String
+  dateOfBirth       DateTime
+  gender            Gender
+  city              String?
+  maritalStatus     MaritalStatus?
+  lookingFor        LookingFor?
+  termsVersion      String?
+  acceptedAt        DateTime?
+  isEmailVerified   Boolean          @default(false)
+  role              UserRole         @default(USER)
+  status            AccountStatus     @default(PENDING)
+  lastLoginAt       DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  profile           Profile?
+  subscriptions     Subscription[]
+  payments          Payment[]
+  interestsSent     Interest[]       @relation("InterestSender")
+  interestsReceived Interest[]       @relation("InterestReceiver")
+  matchesAsFirst    Match[]          @relation("MatchFirstUser")
+  matchesAsSecond   Match[]          @relation("MatchSecondUser")
+  conversations    Conversation[]   @relation("ConversationMember")
+  messagesSent      Message[]
+  reportsFiled      Report[]         @relation("ReportsFiled")
+  reportsReceived   Report[]         @relation("ReportsReceived")
+  reportsReviewed   Report[]         @relation("ReportsReviewedBy")
+  blocksCreated     Block[]          @relation("BlocksCreated")
+  blocksReceived    Block[]          @relation("BlocksReceived")
+  siteSettings      SiteSetting[]    @relation("SiteSettingUpdatedBy")
+  authTokens        AuthToken[]
+  notifications     Notification[]
+  notificationPreference NotificationPreference?
+}
+
+model AuthToken {
+  id         String        @id @default(cuid())
+  userId     String
+  tokenHash  String        @unique
+  type       AuthTokenType
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime      @default(now())
+
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type, expiresAt])
+  @@index([type, expiresAt])
+}
+
+model Profile {
+  id                  String           @id @default(cuid())
+  userId              String           @unique
+  bio                 String?          @db.VarChar(1000)
+  profileImageUrls    String[]         @default([])
+  primaryImageIndex   Int              @default(0)
+  interests           String[]         @default([])
+  occupation          String?          @db.VarChar(120)
+  education           String?          @db.VarChar(160)
+  languages           String[]         @default([])
+  relationshipIntent  String?          @db.VarChar(160)
+  genderPreference    Gender?
+  agePreferenceMin    Int?
+  agePreferenceMax    Int?
+  locationPreference  String?
+  lookingFor          LookingFor?
+  visibility          ProfileVisibility @default(VISIBLE)
+  showOnlineStatus    Boolean          @default(false)
+  showCity            Boolean          @default(true)
+  allowInterests      Boolean          @default(true)
+  onlineStatus        Boolean          @default(false)
+  lastSeenAt          DateTime?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  user                User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SubscriptionPlan {
+  id              String         @id @default(cuid())
+  name            String
+  code            String         @unique
+  durationMonths  Int
+  price           Decimal        @db.Decimal(10, 2)
+  currency        String         @default("INR")
+  description     String?
+  active          Boolean        @default(true)
+  featured        Boolean        @default(false)
+  sortOrder       Int            @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  subscriptions   Subscription[]
+  payments        Payment[]
+}
+
+model Subscription {
+  id                    String             @id @default(cuid())
+  userId                String
+  planId                String
+  status                SubscriptionStatus @default(PENDING)
+  startDate             DateTime?
+  endDate               DateTime?
+  autoRenew             Boolean            @default(false)
+  razorpayOrderId       String?            @unique
+  razorpayPaymentId     String?            @unique
+  razorpaySubscriptionId String?           @unique
+  cancelReason          String?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  user                  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                  SubscriptionPlan   @relation(fields: [planId], references: [id], onDelete: Restrict)
+  payments              Payment[]
+
+  @@index([userId, status])
+  @@index([planId, status])
+}
+
+model Payment {
+  id                String         @id @default(cuid())
+  userId            String
+  planId            String?
+  subscriptionId    String?
+  provider          PaymentProvider @default(RAZORPAY)
+  amount            Decimal        @db.Decimal(10, 2)
+  currency          String         @default("INR")
+  status            PaymentStatus  @default(PENDING)
+  razorpayOrderId   String?
+  razorpayPaymentId String?        @unique
+  razorpaySignature String?
+  metadata          Json?
+  paidAt            DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan              SubscriptionPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
+  subscription      Subscription?  @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([subscriptionId, status])
+  @@index([planId, status])
+  @@index([razorpayOrderId])
+}
+
+model Interest {
+  id               String         @id @default(cuid())
+  senderId         String
+  receiverId       String
+  status           InterestStatus @default(PENDING)
+  note             String?        @db.VarChar(500)
+  respondedAt      DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  sender           User           @relation("InterestSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver         User           @relation("InterestReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+  @@index([receiverId, status])
+  @@index([senderId, status])
+}
+
+model Match {
+  id              String      @id @default(cuid())
+  firstUserId     String
+  secondUserId    String
+  matchedAt       DateTime    @default(now())
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  firstUser       User        @relation("MatchFirstUser", fields: [firstUserId], references: [id], onDelete: Cascade)
+  secondUser      User        @relation("MatchSecondUser", fields: [secondUserId], references: [id], onDelete: Cascade)
+  conversation    Conversation?
+
+  @@unique([firstUserId, secondUserId])
+  @@index([firstUserId])
+  @@index([secondUserId])
+}
+
+model Conversation {
+  id              String      @id @default(cuid())
+  matchId         String      @unique
+  lastMessageAt    DateTime?
+  archivedAt       DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  match           Match       @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  members         User[]      @relation("ConversationMember")
+  messages        Message[]
+
+  @@index([lastMessageAt])
+}
+
+model Message {
+  id              String      @id @default(cuid())
+  conversationId  String
+  senderId        String
+  content         String      @db.Text
+  type            MessageType @default(TEXT)
+  deliveredAt     DateTime?
+  readAt          DateTime?
+  deletedAt       DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender          User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([senderId, createdAt])
+  @@index([conversationId, readAt])
+}
+
+model Report {
+  id              String         @id @default(cuid())
+  reporterId      String
+  reportedUserId  String?
+  reportedType    ReportTargetType
+  status          ReportStatus   @default(PENDING)
+  reason          String         @db.VarChar(255)
+  details         String?        @db.Text
+  reviewedAt      DateTime?
+  reviewedById    String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  reporter        User           @relation("ReportsFiled", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedUser    User?          @relation("ReportsReceived", fields: [reportedUserId], references: [id], onDelete: SetNull)
+  reviewedBy      User?          @relation("ReportsReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([reporterId, createdAt])
+  @@index([reportedUserId, createdAt])
+}
+
+model Block {
+  id              String      @id @default(cuid())
+  blockerId       String
+  blockedUserId   String
+  reason          String?     @db.VarChar(255)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  blocker         User        @relation("BlocksCreated", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedUser     User        @relation("BlocksReceived", fields: [blockedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedUserId])
+  @@index([blockedUserId])
+}
+
+model SiteSetting {
+  id              String         @id @default(cuid())
+  key             String         @unique
+  value           Json
+  description     String?
+  updatedById     String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  updatedBy       User?          @relation("SiteSettingUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+}
+
+model Notification {
+  id         String           @id @default(cuid())
+  userId     String
+  type       NotificationType
+  title      String           @db.VarChar(160)
+  body       String           @db.VarChar(500)
+  readAt     DateTime?
+  metadata   Json?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+  @@index([userId, type, createdAt])
+}
+
+model NotificationPreference {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  interestReceived      Boolean  @default(true)
+  interestAccepted      Boolean  @default(true)
+  newMatch              Boolean  @default(true)
+  newMessage            Boolean  @default(true)
+  subscriptionUpdates   Boolean  @default(true)
+  accountAlerts         Boolean  @default(true)
+  emailImportant        Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

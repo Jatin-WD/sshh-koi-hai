@@ -1,0 +1,2 @@
+ALTER TABLE "User" ADD COLUMN "termsVersion" TEXT;
+ALTER TABLE "User" ADD COLUMN "acceptedAt" TIMESTAMP(3);
