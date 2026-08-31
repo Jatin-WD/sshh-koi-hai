@@ -10,6 +10,7 @@ import { apiRateLimit, requireTrustedOrigin, uploadRateLimit } from "./middlewar
 import pinoHttp from "pino-http";
 import { logger } from "./lib/logger.js";
 import type { RequestHandler } from "express";
+import path from "node:path";
 
 const requestLogger = pinoHttp as unknown as (options: { logger: typeof logger }) => RequestHandler;
 
@@ -39,5 +40,17 @@ app.get("/api", (_req, res) => {
 });
 
 app.use("/api", routes);
+
+// The managed Hostinger deployment runs one Node process, so serve the Vite
+// build from Express while keeping API and Socket.IO paths untouched.
+const clientDist = path.resolve(process.cwd(), "client/dist");
+app.use(express.static(clientDist));
+app.get("*", (req, res, next) => {
+  if (req.path === "/api" || req.path.startsWith("/api/") || req.path.startsWith("/socket.io")) {
+    next();
+    return;
+  }
+  res.sendFile(path.join(clientDist, "index.html"), (error) => error ? next(error) : undefined);
+});
 app.use(notFoundHandler);
 app.use(errorHandler);
