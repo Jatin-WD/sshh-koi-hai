@@ -11,6 +11,8 @@ const envSchema = z.object({
     .min(1)
     .default("postgresql://postgres:postgres@localhost:5432/sshh_koi_hai"),
   CLIENT_ORIGIN: z.string().url().optional(),
+  APP_URL: z.string().url().optional(),
+  FRONTEND_URL: z.string().url().optional(),
   CORS_ORIGINS: z.string().optional(),
   JWT_ACCESS_SECRET: z.string().min(1).default("change-me-access-secret"),
   JWT_REFRESH_SECRET: z.string().min(1).default("change-me-refresh-secret"),
@@ -50,4 +52,4 @@ export const corsOrigins = Array.from(
   ),
 );
 
-export const publicAppUrl = env.CLIENT_APP_URL ?? env.CLIENT_ORIGIN ?? `http://localhost:${env.PORT}`;
+export const publicAppUrl = env.APP_URL ?? env.FRONTEND_URL ?? env.CLIENT_APP_URL ?? env.CLIENT_ORIGIN ?? `http://localhost:${env.PORT}`;

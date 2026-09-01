@@ -36,8 +36,8 @@ async function main() {
 
   const [monthly, quarterly, yearly] = await Promise.all([
     upsertPlan({ name: "Monthly", code: "monthly", durationMonths: 1, price: 499, featured: false, sortOrder: 1 }),
-    upsertPlan({ name: "Quarterly", code: "quarterly", durationMonths: 3, price: 1199, featured: true, sortOrder: 2 }),
-    upsertPlan({ name: "Yearly", code: "yearly", durationMonths: 12, price: 3999, featured: false, sortOrder: 3 }),
+    upsertPlan({ name: "Quarterly", code: "quarterly", durationMonths: 3, price: 999, featured: true, sortOrder: 2 }),
+    upsertPlan({ name: "Yearly", code: "yearly", durationMonths: 12, price: 2499, featured: false, sortOrder: 3 }),
   ]);
 
   const passwordHash = await bcrypt.hash(demoPassword, 12);
@@ -85,7 +85,7 @@ async function main() {
   await prisma.notification.create({ data: { userId: aanya.id, type: "INTEREST_RECEIVED", title: "New interest", body: "Meera Iyer sent you an interest.", metadata: { seed: true } } });
   await prisma.notification.create({ data: { userId: kabir.id, type: "NEW_MATCH", title: "New match", body: "You and Aanya Mehta can now start a private conversation.", metadata: { seed: true } } });
 
-  await prisma.siteSetting.upsert({ where: { key: "business_model" }, update: {}, create: { key: "business_model", value: "EVERYONE_PAID", description: "Demo membership mode" } });
+  await prisma.siteSetting.upsert({ where: { key: "business_model" }, update: {}, create: { key: "business_model", value: "MEN_PAID_WOMEN_FREE", description: "Controls which members require paid access." } });
   console.log(`Seeded ${demoUsers.length} fictional demo users, three plans, subscriptions, interests, a match, a conversation, messages, and notifications.`);
   console.log(`Demo login password: ${demoPassword}${process.env.DEMO_INITIAL_PASSWORD ? " (from DEMO_INITIAL_PASSWORD)" : " (generated for this run)"}`);
   console.log(`Admin account: ${adminEmail} (password supplied through ADMIN_INITIAL_PASSWORD)`);

@@ -12,11 +12,13 @@ import { logger } from "./lib/logger.js";
 import type { RequestHandler } from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadClientTemplate, renderSeoHtml } from "./lib/seo.js";
 
 const requestLogger = pinoHttp as unknown as (options: { logger: typeof logger }) => RequestHandler;
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(moduleDir, "..", "..");
 const clientDist = path.resolve(repoRoot, "client/dist");
+let clientTemplate: string | undefined;
 
 export const app = express();
 
@@ -30,6 +32,8 @@ app.use(
   }),
 );
 app.use(cookieParser());
+// Razorpay signs the exact webhook bytes, so this route must bypass JSON parsing.
+app.use("/api/payments/razorpay/webhook", express.raw({ type: "application/json", limit: "256kb" }));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(apiRateLimit);
@@ -53,7 +57,12 @@ app.get("*", (req, res, next) => {
     next();
     return;
   }
-  res.sendFile(path.join(clientDist, "index.html"), (error) => error ? next(error) : undefined);
+  try {
+    clientTemplate ??= loadClientTemplate(clientDist);
+    res.type("html").send(renderSeoHtml(clientTemplate, req.path));
+  } catch (error) {
+    next(error);
+  }
 });
 app.use(notFoundHandler);
 app.use(errorHandler);

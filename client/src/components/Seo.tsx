@@ -1,12 +1,12 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
-const siteUrl = "https://sshhkoihai.com";
+const siteUrl = import.meta.env.VITE_APP_URL || "https://sshhkoihai.com";
 const siteName = "Sshh... Koi Hai?";
 
 const pageSeo: Record<string, { title: string; description: string }> = {
   "/": {
-    title: "Private Dating & Meaningful Connections for Adults | Sshh... Koi Hai?",
+    title: "Sshh... Koi Hai? | Private Conversations & Meaningful Connections",
     description: "A discreet, privacy-first dating space for verified adults to discover meaningful connections and start private conversations.",
   },
   "/about": {
@@ -91,10 +91,11 @@ export default function Seo() {
     setProperty("og:title", seo.title);
     setProperty("og:description", seo.description);
     setProperty("og:url", canonicalUrl);
-    setProperty("og:image", `${siteUrl}/logo-transparent.png`);
-    setMeta("twitter:card", "summary");
+    setProperty("og:image", `${siteUrl}/og-image.png`);
+    setMeta("twitter:card", "summary_large_image");
     setMeta("twitter:title", seo.title);
     setMeta("twitter:description", seo.description);
+    setMeta("twitter:image", `${siteUrl}/og-image.png`);
 
     let canonical = document.head.querySelector<HTMLLinkElement>("link[rel=canonical]");
     if (!canonical) {

@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://sshhkoihai.com/</loc><priority>1.0</priority></url>
-  <url><loc>https://sshhkoihai.com/about</loc><priority>0.8</priority></url>
-  <url><loc>https://sshhkoihai.com/how-it-works</loc><priority>0.8</priority></url>
-  <url><loc>https://sshhkoihai.com/membership</loc><priority>0.8</priority></url>
-  <url><loc>https://sshhkoihai.com/safety</loc><priority>0.7</priority></url>
-  <url><loc>https://sshhkoihai.com/privacy</loc><priority>0.5</priority></url>
-  <url><loc>https://sshhkoihai.com/terms</loc><priority>0.5</priority></url>
-  <url><loc>https://sshhkoihai.com/community-guidelines</loc><priority>0.6</priority></url>
-  <url><loc>https://sshhkoihai.com/refunds</loc><priority>0.5</priority></url>
-  <url><loc>https://sshhkoihai.com/cookies</loc><priority>0.4</priority></url>
-  <url><loc>https://sshhkoihai.com/contact</loc><priority>0.5</priority></url>
+  <url><loc>https://sshhkoihai.com/</loc></url>
+  <url><loc>https://sshhkoihai.com/about</loc></url>
+  <url><loc>https://sshhkoihai.com/how-it-works</loc></url>
+  <url><loc>https://sshhkoihai.com/membership</loc></url>
+  <url><loc>https://sshhkoihai.com/safety</loc></url>
+  <url><loc>https://sshhkoihai.com/privacy</loc></url>
+  <url><loc>https://sshhkoihai.com/terms</loc></url>
+  <url><loc>https://sshhkoihai.com/community-guidelines</loc></url>
+  <url><loc>https://sshhkoihai.com/refunds</loc></url>
+  <url><loc>https://sshhkoihai.com/cookies</loc></url>
+  <url><loc>https://sshhkoihai.com/contact</loc></url>
 </urlset>
