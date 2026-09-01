@@ -5,6 +5,9 @@
     "client",
     "server"
   ],
+  "overrides": {
+    "esbuild": "0.28.2"
+  },
   "scripts": {
     "build": "npm run build -w server && npm run build -w client",
     "start": "node server/dist/index.js",
