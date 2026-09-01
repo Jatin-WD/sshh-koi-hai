@@ -133,7 +133,6 @@ CREATE INDEX "Payment_razorpayOrderId_idx" ON "Payment"("razorpayOrderId");
 CREATE UNIQUE INDEX "Payment_razorpayPaymentId_key" ON "Payment"("razorpayPaymentId");
 CREATE INDEX "Payment_userId_status_idx" ON "Payment"("userId", "status");
 CREATE INDEX "Payment_subscriptionId_status_idx" ON "Payment"("subscriptionId", "status");
-CREATE INDEX "Payment_razorpayOrderId_idx" ON "Payment"("razorpayOrderId");
 
 -- CreateTable
 CREATE TABLE "Interest" (
