@@ -109,6 +109,33 @@ The admin API never returns password hashes or plaintext passwords. It supports 
 
 ## Production Deployment
 
+For a single-node host like Hostinger Web App, the recommended flow is:
+
+1. Copy the server env example to `server/.env` and replace every placeholder.
+
+```bash
+copy server\.env.example server\.env
+```
+
+2. Set the production URLs if you use email verification or password reset:
+
+```bash
+CLIENT_ORIGIN=https://your-domain.com
+CLIENT_APP_URL=https://your-domain.com
+CORS_ORIGINS=https://your-domain.com
+```
+
+3. Install and build from the repository root:
+
+```bash
+npm install
+npm run build
+```
+
+4. Start the app with the root `npm start` command. The root `prestart` script rebuilds first when needed, and the server serves the client build from `client/dist`.
+
+For container-based deployment, keep the existing Docker flow:
+
 1. Copy `.env.production.example` to `.env.production`, replace every placeholder, and keep the file outside version control.
 2. Build the images:
 

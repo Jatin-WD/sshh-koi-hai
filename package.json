@@ -7,6 +7,8 @@
   ],
   "scripts": {
     "build": "npm run build -w server && npm run build -w client",
+    "prestart": "npm run build",
+    "start": "npm run start -w server",
     "dev:server": "npm run dev -w server",
     "dev:client": "npm run dev -w client",
     "prisma:generate": "npm run prisma:generate -w server",

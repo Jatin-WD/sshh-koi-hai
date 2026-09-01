@@ -1,5 +1,5 @@
 import nodemailer from "nodemailer";
-import { env } from "../config/env.js";
+import { env, publicAppUrl } from "../config/env.js";
 
 const transporter = env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASS
   ? nodemailer.createTransport({ host: env.SMTP_HOST, port: env.SMTP_PORT, secure: env.SMTP_PORT === 465, auth: { user: env.SMTP_USER, pass: env.SMTP_PASS } })
@@ -10,12 +10,12 @@ function layout(title: string, body: string) {
 }
 
 export async function sendVerificationEmail(email: string, displayName: string, token: string) {
-  const url = `${env.CLIENT_APP_URL}/verify-email?token=${encodeURIComponent(token)}`;
+  const url = `${publicAppUrl}/verify-email?token=${encodeURIComponent(token)}`;
   return sendMail(email, "Confirm your email", layout("A quiet hello awaits.", `<p>Hello ${escapeHtml(displayName)},</p><p>Confirm your email to finish creating your private account.</p><p><a href="${url}" style="display:inline-block;padding:13px 22px;background:#681f35;color:#fffaf5;text-decoration:none">Confirm email</a></p><p style="font-size:12px;color:#75666a">This link expires in ${env.EMAIL_VERIFICATION_TTL_HOURS} hours.</p>`));
 }
 
 export async function sendPasswordResetEmail(email: string, displayName: string, token: string) {
-  const url = `${env.CLIENT_APP_URL}/reset-password?token=${encodeURIComponent(token)}`;
+  const url = `${publicAppUrl}/reset-password?token=${encodeURIComponent(token)}`;
   return sendMail(email, "Reset your password", layout("Your private access link.", `<p>Hello ${escapeHtml(displayName)},</p><p>Use the button below to choose a new password.</p><p><a href="${url}" style="display:inline-block;padding:13px 22px;background:#681f35;color:#fffaf5;text-decoration:none">Reset password</a></p><p style="font-size:12px;color:#75666a">This link expires in ${env.PASSWORD_RESET_TTL_MINUTES} minutes. If you did not request this, you can ignore it.</p>`));
 }
 
