@@ -109,6 +109,12 @@ The admin API never returns password hashes or plaintext passwords. It supports 
 
 ## Production Deployment
 
+Apply committed database migrations before starting the production server:
+
+```bash
+npm run db:migrate
+```
+
 For a single-node host like Hostinger Web App, the recommended flow is:
 
 1. Copy the server env example to `server/.env` and replace every placeholder.
