@@ -4,6 +4,16 @@ import { createServer } from "node:http";
 import { attachSocketServer } from "./realtime/socket.js";
 import { prisma } from "./db/prisma.js";
 import { logger } from "./lib/logger.js";
+import { execFileSync } from "node:child_process";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+if (env.NODE_ENV === "production") {
+  const serverDir = path.dirname(fileURLToPath(import.meta.url));
+  const prismaCli = path.resolve(serverDir, "../../node_modules/prisma/build/index.js");
+  const schema = path.resolve(serverDir, "../prisma/schema.prisma");
+  execFileSync(process.execPath, [prismaCli, "migrate", "deploy", "--schema", schema], { stdio: "inherit" });
+}
 
 const server = createServer(app);
 const io = attachSocketServer(server);
