@@ -15,6 +15,7 @@
     "dev:client": "npm run dev -w client",
     "prisma:generate": "npm run prisma:generate -w server",
     "db:migrate": "npx prisma migrate deploy --schema server/prisma/schema.prisma",
+    "db:recover": "node scripts/recover-production-migration.cjs",
     "prisma:migrate": "npm run prisma:migrate -w server",
     "prisma:seed": "npm run prisma:seed -w server"
   }
