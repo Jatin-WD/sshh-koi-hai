@@ -5,6 +5,7 @@ import { ACCESS_COOKIE, publicUser } from "../lib/auth.js";
 import { env } from "../config/env.js";
 import { AppError } from "../lib/appError.js";
 import { withDbStatementTimeout } from "../lib/dbTimeout.js";
+import { logger } from "../lib/logger.js";
 
 declare global { namespace Express { interface Request { authUser?: ReturnType<typeof publicUser>; } } }
 
@@ -19,5 +20,8 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
     if (!user || user.status === "SUSPENDED" || user.status === "BANNED" || user.status === "DELETED") throw new AppError("Account unavailable", 401, "ACCOUNT_UNAVAILABLE");
     req.authUser = publicUser(user);
     next();
-  } catch (error) { next(error instanceof AppError ? error : new AppError("Invalid or expired session", 401, "INVALID_SESSION")); }
+  } catch (error) {
+    if (!(error instanceof AppError)) logger.error({ err: error, method: req.method, path: req.originalUrl }, "Authentication lookup failed");
+    next(error instanceof AppError ? error : new AppError("Invalid or expired session", 401, "INVALID_SESSION"));
+  }
 }

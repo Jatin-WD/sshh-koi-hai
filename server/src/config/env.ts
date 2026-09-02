@@ -6,9 +6,9 @@ const envSchema = z.object({
   // Hostinger's managed Node runtime routes traffic to port 3000 by default.
   // Local development can still override this with PORT=4000.
   PORT: z.coerce.number().int().positive().default(3000),
-  REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
-  DB_STATEMENT_TIMEOUT_MS: z.coerce.number().int().positive().default(8000),
-  OUTBOUND_HTTP_TIMEOUT_MS: z.coerce.number().int().positive().default(10000),
+  REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(15000).transform((value) => Math.min(value, 60000)),
+  DB_STATEMENT_TIMEOUT_MS: z.coerce.number().int().positive().default(5000).transform((value) => Math.min(value, 15000)),
+  OUTBOUND_HTTP_TIMEOUT_MS: z.coerce.number().int().positive().default(8000).transform((value) => Math.min(value, 15000)),
   DATABASE_URL: z
     .string()
     .min(1)
@@ -39,6 +39,16 @@ const envSchema = z.object({
 });
 
 export const env = envSchema.parse(process.env);
+
+function normalizeDatabaseUrl(url: string) {
+  const normalized = new URL(url);
+  normalized.searchParams.set("connect_timeout", "5");
+  normalized.searchParams.set("pool_timeout", "10");
+  return normalized.toString();
+}
+
+export const databaseUrl = normalizeDatabaseUrl(env.DATABASE_URL);
+process.env.DATABASE_URL = databaseUrl;
 
 if (env.NODE_ENV === "production") {
   const weakDefaults = ["change-me-access-secret", "change-me-refresh-secret"];

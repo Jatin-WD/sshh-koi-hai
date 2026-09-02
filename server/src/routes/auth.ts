@@ -9,7 +9,7 @@ import { sendSuccess } from "../lib/apiResponse.js";
 import { clearAuthCookies, createOpaqueToken, hashToken, publicUser, setAuthCookies } from "../lib/auth.js";
 import { sendPasswordResetEmail, sendVerificationEmail } from "../lib/mail.js";
 import { requireAuth } from "../middleware/auth.js";
-import { authRateLimit } from "../middleware/security.js";
+import { authRateLimit, perIpCircuitBreaker } from "../middleware/security.js";
 
 const router = Router();
 const CURRENT_TERMS_VERSION = "2026-08-31";
@@ -53,7 +53,10 @@ router.post("/logout", async (req, res, next) => {
   try { const token = req.cookies?.sshh_refresh; if (token) await prisma.authToken.updateMany({ where: { tokenHash: hashToken(token), type: "REFRESH_SESSION", consumedAt: null }, data: { consumedAt: new Date() } }); clearAuthCookies(res); return sendSuccess(res, { loggedOut: true }); } catch (error) { return next(error); }
 });
 
-router.get("/me", requireAuth, (req, res) => sendSuccess(res, { user: req.authUser }));
+router.get("/me", perIpCircuitBreaker("/api/auth/me"), requireAuth, (req, res) => {
+  res.set("Cache-Control", "no-store");
+  return sendSuccess(res, { user: req.authUser });
+});
 
 router.post("/change-password", requireAuth, async (req, res, next) => {
   try {

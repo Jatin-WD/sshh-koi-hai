@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { env, publicAppUrl } from "../config/env.js";
+import { logger } from "./logger.js";
 
 const transporter = env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASS
   ? nodemailer.createTransport({ host: env.SMTP_HOST, port: env.SMTP_PORT, secure: env.SMTP_PORT === 465, auth: { user: env.SMTP_USER, pass: env.SMTP_PASS }, connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 15000 })
@@ -24,7 +25,22 @@ async function sendMail(to: string, subject: string, html: string) {
     if (env.NODE_ENV !== "production") console.info(`[email preview] ${subject} -> ${to}`);
     return;
   }
-  await transporter.sendMail({ from: env.SMTP_FROM_NAME ? `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM}>` : env.SMTP_FROM, to, subject, html });
+  const timeoutMs = Math.max(1, Math.min(env.OUTBOUND_HTTP_TIMEOUT_MS, 15000));
+  const timeout = setTimeout(() => {
+    logger.warn({ to, subject, timeoutMs }, "SMTP send timed out");
+  }, timeoutMs);
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      transporter.sendMail({ from: env.SMTP_FROM_NAME ? `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM}>` : env.SMTP_FROM, to, subject, html }),
+      new Promise((_, reject) => {
+        timeoutHandle = setTimeout(() => reject(new Error(`SMTP send timed out after ${timeoutMs}ms`)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+    clearTimeout(timeout);
+  }
 }
 
 function escapeHtml(value: string) {

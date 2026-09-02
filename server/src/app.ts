@@ -41,10 +41,14 @@ app.use((req, res, next) => {
   };
 
   const timeout = setTimeout(() => {
-    if (res.headersSent) return;
+    if (res.headersSent || res.writableEnded) return;
     logger.warn({ method: req.method, path: req.originalUrl, timeoutMs: env.REQUEST_TIMEOUT_MS }, "Request timed out");
     next(new AppError("Request timed out", 504, "REQUEST_TIMEOUT"));
   }, env.REQUEST_TIMEOUT_MS);
+
+  req.on("aborted", () => {
+    logger.warn({ method: req.method, path: req.originalUrl }, "Request aborted by client");
+  });
 
   res.on("finish", () => {
     clearTimeout(timeout);
