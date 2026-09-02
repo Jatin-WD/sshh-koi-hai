@@ -7,6 +7,7 @@ import { AppError } from "../lib/appError.js";
 import { sendSuccess } from "../lib/apiResponse.js";
 import { requireAuth } from "../middleware/auth.js";
 import { createNotification } from "../lib/notifications.js";
+import { fetchWithTimeout } from "../lib/http.js";
 
 const router = Router();
 const orderSchema = z.object({ planCode: z.string().trim().min(1).max(40) });
@@ -39,7 +40,7 @@ router.post("/razorpay/order", requireAuth, async (req, res, next) => {
     if (!req.authUser) throw new AppError("Authentication required", 401, "AUTH_REQUIRED");
     const pending = await prisma.subscription.create({ data: { userId: req.authUser.id, planId: plan.id, status: "PENDING" } });
     const amount = Math.round(Number(plan.price) * 100);
-    const response = await fetch("https://api.razorpay.com/v1/orders", { method: "POST", headers: { Authorization: `Basic ${Buffer.from(`${env.RAZORPAY_KEY_ID}:${env.RAZORPAY_KEY_SECRET}`).toString("base64")}`, "Content-Type": "application/json" }, body: JSON.stringify({ amount, currency: plan.currency, receipt: pending.id, notes: { planCode: plan.code, userId: req.authUser.id } }) });
+    const response = await fetchWithTimeout("https://api.razorpay.com/v1/orders", { method: "POST", headers: { Authorization: `Basic ${Buffer.from(`${env.RAZORPAY_KEY_ID}:${env.RAZORPAY_KEY_SECRET}`).toString("base64")}`, "Content-Type": "application/json" }, body: JSON.stringify({ amount, currency: plan.currency, receipt: pending.id, notes: { planCode: plan.code, userId: req.authUser.id } }) });
     if (!response.ok) { await prisma.subscription.update({ where: { id: pending.id }, data: { status: "CANCELLED", cancelReason: "Razorpay order creation failed" } }); throw new AppError("Unable to start payment", 502, "PAYMENT_PROVIDER_ERROR"); }
     const order = await response.json() as { id: string; amount: number; currency: string };
     const payment = await prisma.payment.create({ data: { userId: req.authUser.id, planId: plan.id, subscriptionId: pending.id, amount: plan.price, currency: plan.currency, status: "PENDING", razorpayOrderId: order.id, metadata: { providerAmount: order.amount } } });

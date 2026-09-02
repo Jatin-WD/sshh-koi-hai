@@ -5,6 +5,9 @@ import { attachSocketServer } from "./realtime/socket.js";
 import { prisma } from "./db/prisma.js";
 import { logger } from "./lib/logger.js";
 const server = createServer(app);
+server.requestTimeout = env.REQUEST_TIMEOUT_MS;
+server.headersTimeout = env.REQUEST_TIMEOUT_MS + 5000;
+server.keepAliveTimeout = 5000;
 const io = attachSocketServer(server);
 server.listen(env.PORT, "0.0.0.0", () => {
   logger.info({ port: env.PORT }, "API listening");

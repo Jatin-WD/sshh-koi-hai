@@ -3,12 +3,13 @@ import { prisma } from "../db/prisma.js";
 import { sendSuccess } from "../lib/apiResponse.js";
 import { requireAuth } from "../middleware/auth.js";
 import { getCurrentSubscription, membershipIsRequired } from "../lib/membership.js";
+import { withDbStatementTimeout } from "../lib/dbTimeout.js";
 
 const router = Router();
 
 router.get("/plans", async (_req, res, next) => {
   try {
-    const plans = await prisma.subscriptionPlan.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } });
+    const plans = await withDbStatementTimeout((tx) => tx.subscriptionPlan.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }));
     return sendSuccess(res, { plans: plans.map((plan) => ({ ...plan, price: plan.price.toString() })) });
   } catch (error) { return next(error); }
 });

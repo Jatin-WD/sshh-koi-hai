@@ -4,26 +4,27 @@ import { AppError } from "./appError.js";
 import { requireAuth } from "../middleware/auth.js";
 import { profileCompletion } from "./profile.js";
 import { ensureSubscriptionNotification } from "./notifications.js";
+import { withDbStatementTimeout } from "./dbTimeout.js";
 
 export async function getCurrentSubscription(userId: string) {
-  const subscription = await prisma.subscription.findFirst({ where: { userId, status: "ACTIVE" }, include: { plan: true }, orderBy: { endDate: "desc" } });
+  const subscription = await withDbStatementTimeout((tx) => tx.subscription.findFirst({ where: { userId, status: "ACTIVE" }, include: { plan: true }, orderBy: { endDate: "desc" } }));
   if (subscription && (!subscription.endDate || subscription.endDate > new Date())) {
     await ensureSubscriptionNotification(userId, subscription.endDate);
     return subscription;
   }
   if (subscription) {
-    await prisma.subscription.update({ where: { id: subscription.id }, data: { status: "EXPIRED" } });
+    await withDbStatementTimeout((tx) => tx.subscription.update({ where: { id: subscription.id }, data: { status: "EXPIRED" } }));
     await ensureSubscriptionNotification(userId, subscription.endDate);
   }
   return null;
 }
 
 export async function membershipIsRequired(userId: string) {
-  const setting = await prisma.siteSetting.findUnique({ where: { key: "business_model" } });
+  const setting = await withDbStatementTimeout((tx) => tx.siteSetting.findUnique({ where: { key: "business_model" } }));
   const model = typeof setting?.value === "string" ? setting.value : undefined;
   if (model === "FREE_REGISTRATION_PAID_MESSAGING") return false;
   if (model === "MEN_PAID_WOMEN_FREE") {
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: { gender: true } });
+    const user = await withDbStatementTimeout((tx) => tx.user.findUnique({ where: { id: userId }, select: { gender: true } }));
     return user?.gender === "MALE";
   }
   return true;

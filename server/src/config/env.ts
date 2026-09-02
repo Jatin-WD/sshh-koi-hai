@@ -6,6 +6,9 @@ const envSchema = z.object({
   // Hostinger's managed Node runtime routes traffic to port 3000 by default.
   // Local development can still override this with PORT=4000.
   PORT: z.coerce.number().int().positive().default(3000),
+  REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
+  DB_STATEMENT_TIMEOUT_MS: z.coerce.number().int().positive().default(8000),
+  OUTBOUND_HTTP_TIMEOUT_MS: z.coerce.number().int().positive().default(10000),
   DATABASE_URL: z
     .string()
     .min(1)

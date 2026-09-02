@@ -13,6 +13,8 @@ import type { RequestHandler } from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadClientTemplate, renderSeoHtml } from "./lib/seo.js";
+import { env } from "./config/env.js";
+import { AppError } from "./lib/appError.js";
 
 const requestLogger = pinoHttp as unknown as (options: { logger: typeof logger }) => RequestHandler;
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
@@ -26,6 +28,36 @@ if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
 app.disable("x-powered-by");
 app.use(helmet({ crossOriginResourcePolicy: { policy: "same-site" } }));
 app.use(requestLogger({ logger }));
+app.use((req, res, next) => {
+  const startedAt = process.hrtime.bigint();
+  let logged = false;
+  logger.info({ method: req.method, path: req.originalUrl }, "Request started");
+
+  const finish = (event: "finish" | "close") => {
+    if (logged) return;
+    logged = true;
+    const durationMs = Number(process.hrtime.bigint() - startedAt) / 1_000_000;
+    logger.info({ method: req.method, path: req.originalUrl, statusCode: res.statusCode, durationMs: Math.round(durationMs), event }, "Request completed");
+  };
+
+  const timeout = setTimeout(() => {
+    if (res.headersSent) return;
+    logger.warn({ method: req.method, path: req.originalUrl, timeoutMs: env.REQUEST_TIMEOUT_MS }, "Request timed out");
+    next(new AppError("Request timed out", 504, "REQUEST_TIMEOUT"));
+  }, env.REQUEST_TIMEOUT_MS);
+
+  res.on("finish", () => {
+    clearTimeout(timeout);
+    finish("finish");
+  });
+
+  res.on("close", () => {
+    clearTimeout(timeout);
+    finish("close");
+  });
+
+  next();
+});
 app.use(
   cors({
     ...corsOptions,
