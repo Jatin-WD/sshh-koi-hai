@@ -94,7 +94,11 @@ app.use("/api", routes);
 // The managed Hostinger deployment runs one Node process, so serve the Vite
 // build from Express while keeping API and Socket.IO paths untouched.
 app.use(express.static(clientDist));
-app.get("*", (req, res, next) => {
+app.use((req, res, next) => {
+  if (!["GET", "HEAD"].includes(req.method)) {
+    next();
+    return;
+  }
   if (req.path === "/api" || req.path.startsWith("/api/") || req.path.startsWith("/socket.io")) {
     next();
     return;
