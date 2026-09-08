@@ -25,6 +25,10 @@ let clientTemplate: string | undefined;
 export const app = express();
 
 if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
+// Avoid Express's extended `qs` parser for untrusted query/form input. The
+// native parser is sufficient for this API and prevents oversized comma/bracket
+// arrays from bypassing qs array limits (CVE-2026-82562).
+app.set("query parser", "simple");
 app.disable("x-powered-by");
 app.use(helmet({ crossOriginResourcePolicy: { policy: "same-site" } }));
 app.use(requestLogger({ logger }));
@@ -71,7 +75,7 @@ app.use(cookieParser());
 // Razorpay signs the exact webhook bytes, so this route must bypass JSON parsing.
 app.use("/api/payments/razorpay/webhook", express.raw({ type: "application/json", limit: "256kb" }));
 app.use(express.json({ limit: "1mb" }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: false, limit: "100kb", parameterLimit: 100 }));
 app.use(sharedTrafficLimit);
 app.use(trafficController);
 app.use(apiRateLimit);

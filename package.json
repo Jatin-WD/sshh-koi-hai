@@ -6,7 +6,13 @@
     "server"
   ],
   "overrides": {
-    "esbuild": "0.28.2"
+    "esbuild": "0.28.2",
+    "express": {
+      "qs": "6.16.0"
+    },
+    "body-parser": {
+      "qs": "6.16.0"
+    }
   },
   "scripts": {
     "build": "npm run build -w server && npm run build -w client",
@@ -18,5 +24,8 @@
     "db:recover": "node scripts/recover-production-migration.cjs",
     "prisma:migrate": "npm run prisma:migrate -w server",
     "prisma:seed": "npm run prisma:seed -w server"
+  },
+  "dependencies": {
+    "qs": "6.16.0"
   }
 }
