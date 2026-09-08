@@ -92,7 +92,7 @@ export default function ProfilePage() {
     reader.onload = async () => {
       if (typeof reader.result !== "string") { setUploading(false); setError("The selected image could not be read. Please try another file."); return; }
       try {
-        const result = await api<{ profileImages: string[]; primaryImageIndex: number }>("/profile/images", { method: "POST", body: JSON.stringify({ imageData: reader.result }) });
+        const result = await api<{ profileImages: string[]; primaryImageIndex: number }>("/profile/images", { method: "POST", headers: { "Content-Type": file.type }, body: file });
         setProfile({ ...profile, profileImages: result.profileImages, primaryImageIndex: result.primaryImageIndex }); setNotice("Photo added to your profile.");
       } catch (e) { setError(e instanceof Error ? e.message : "Unable to upload image"); }
       finally { setUploading(false); }
