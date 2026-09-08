@@ -20,6 +20,18 @@ export async function sendPasswordResetEmail(email: string, displayName: string,
   return sendMail(email, "Reset your password", layout("Your private access link.", `<p>Hello ${escapeHtml(displayName)},</p><p>Use the button below to choose a new password.</p><p><a href="${url}" style="display:inline-block;padding:13px 22px;background:#681f35;color:#fffaf5;text-decoration:none">Reset password</a></p><p style="font-size:12px;color:#75666a">This link expires in ${env.PASSWORD_RESET_TTL_MINUTES} minutes. If you did not request this, you can ignore it.</p>`));
 }
 
+export async function sendAdminActivityEmail(event: string, details: Record<string, string | number | boolean | null | undefined>) {
+  const rows = Object.entries(details)
+    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .map(([key, value]) => `<tr><td style="padding:8px 12px;border-bottom:1px solid #eadbd5;color:#75666a">${escapeHtml(key)}</td><td style="padding:8px 12px;border-bottom:1px solid #eadbd5">${escapeHtml(String(value))}</td></tr>`)
+    .join("");
+  try {
+    await sendMail(env.ADMIN_ACTIVITY_EMAIL, `[Sshh... Koi Hai?] ${event}`, layout(`Activity: ${escapeHtml(event)}`, `<p>A new platform activity was recorded.</p><table style="width:100%;border-collapse:collapse;font-size:14px">${rows}</table>`));
+  } catch (error) {
+    logger.error({ err: error, event }, "Admin activity email delivery failed");
+  }
+}
+
 async function sendMail(to: string, subject: string, html: string) {
   if (!transporter || !env.SMTP_FROM) {
     if (env.NODE_ENV !== "production") console.info(`[email preview] ${subject} -> ${to}`);

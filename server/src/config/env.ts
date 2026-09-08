@@ -42,6 +42,7 @@ const envSchema = z.object({
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().optional(),
   SMTP_FROM_NAME: z.string().optional(),
+  ADMIN_ACTIVITY_EMAIL: z.string().email().default("contact.sshhkoihai@gmail.com"),
   RAZORPAY_KEY_ID: z.string().optional(),
   RAZORPAY_KEY_SECRET: z.string().optional(),
   RAZORPAY_WEBHOOK_SECRET: z.string().optional(),

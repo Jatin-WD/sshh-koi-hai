@@ -7,7 +7,7 @@ import { env } from "../config/env.js";
 import { AppError } from "../lib/appError.js";
 import { sendSuccess } from "../lib/apiResponse.js";
 import { clearAuthCookies, createOpaqueToken, hashToken, publicUser, setAuthCookies } from "../lib/auth.js";
-import { sendPasswordResetEmail, sendVerificationEmail } from "../lib/mail.js";
+import { sendAdminActivityEmail, sendPasswordResetEmail, sendVerificationEmail } from "../lib/mail.js";
 import { logger } from "../lib/logger.js";
 import { requireAuth } from "../middleware/auth.js";
 import { authRateLimit, perIpCircuitBreaker } from "../middleware/security.js";
@@ -33,6 +33,7 @@ router.post("/register", authRateLimit, async (req, res, next) => {
     if (existing) throw new AppError("An account with this email already exists. Please sign in or use another email.", 400, "REGISTRATION_EMAIL_EXISTS");
     const passwordHash = await bcrypt.hash(input.password, 12);
     const user = await prisma.user.create({ data: { email: input.email, passwordHash, displayName: input.displayName, dateOfBirth: input.dateOfBirth, gender: input.gender, city: input.city, maritalStatus: input.maritalStatus, lookingFor: input.lookingFor, termsVersion: CURRENT_TERMS_VERSION, acceptedAt: new Date(), profile: { create: {} } } });
+    void sendAdminActivityEmail("New registration", { userId: user.id, name: user.displayName, email: user.email, city: user.city, registeredAt: user.createdAt.toISOString() });
     const token = await createAuthToken(user.id, "EMAIL_VERIFICATION", env.EMAIL_VERIFICATION_TTL_HOURS * 3600000);
     let verificationEmailSent = true;
     try {
@@ -59,6 +60,7 @@ router.post("/login", authRateLimit, async (req, res, next) => {
     if (!user || !(await bcrypt.compare(input.password, user.passwordHash)) || !user.isEmailVerified || ["SUSPENDED", "BANNED", "DELETED"].includes(user.status)) throw new AppError("Invalid email or password", 401, "INVALID_CREDENTIALS");
     const updated = await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date(), status: "ACTIVE" } });
     await setAuthCookies(res, updated);
+    void sendAdminActivityEmail("User login", { userId: updated.id, name: updated.displayName, email: updated.email, loggedInAt: updated.lastLoginAt?.toISOString() });
     return sendSuccess(res, { user: publicUser(updated) });
   } catch (error) { return next(error); }
 });
@@ -94,6 +96,7 @@ router.post("/verify-email", async (req, res, next) => {
     if (!record) throw new AppError("This verification link is invalid or expired", 400, "INVALID_VERIFICATION_TOKEN");
     const user = await prisma.user.update({ where: { id: record.userId }, data: { isEmailVerified: true, status: "ACTIVE" } });
     await prisma.authToken.update({ where: { id: record.id }, data: { consumedAt: new Date() } });
+    void sendAdminActivityEmail("Email verified", { userId: user.id, name: user.displayName, email: user.email, verifiedAt: new Date().toISOString() });
     return sendSuccess(res, { user: publicUser(user), verified: true });
   } catch (error) { return next(error); }
 });

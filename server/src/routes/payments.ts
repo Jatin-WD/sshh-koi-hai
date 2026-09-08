@@ -8,6 +8,7 @@ import { sendSuccess } from "../lib/apiResponse.js";
 import { requireAuth } from "../middleware/auth.js";
 import { createNotification } from "../lib/notifications.js";
 import { fetchWithTimeout } from "../lib/http.js";
+import { sendAdminActivityEmail } from "../lib/mail.js";
 
 const router = Router();
 const orderSchema = z.object({ planCode: z.string().trim().min(1).max(40) });
@@ -45,6 +46,7 @@ router.post("/razorpay/order", requireAuth, async (req, res, next) => {
     const order = await response.json() as { id: string; amount: number; currency: string };
     const payment = await prisma.payment.create({ data: { userId: req.authUser.id, planId: plan.id, subscriptionId: pending.id, amount: plan.price, currency: plan.currency, status: "PENDING", razorpayOrderId: order.id, metadata: { providerAmount: order.amount } } });
     await prisma.subscription.update({ where: { id: pending.id }, data: { razorpayOrderId: order.id } });
+    void sendAdminActivityEmail("Membership order created", { userId: req.authUser.id, name: req.authUser.displayName, email: req.authUser.email, plan: plan.name, amount: `${plan.currency} ${plan.price.toString()}`, orderId: order.id, createdAt: new Date().toISOString() });
     return sendSuccess(res, { orderId: order.id, amount: order.amount, currency: order.currency, paymentId: payment.id, plan: { code: plan.code, name: plan.name } }, 201);
   } catch (error) { return next(error); }
 });
@@ -63,6 +65,7 @@ router.post("/razorpay/verify", requireAuth, async (req, res, next) => {
     if (payment.razorpayPaymentId && payment.razorpayPaymentId !== input.razorpayPaymentId) throw new AppError("Payment has already been recorded", 409, "PAYMENT_ALREADY_RECORDED");
     const subscription = await activatePayment(payment.id, input.razorpayPaymentId, input.razorpaySignature);
     await createNotification(req.authUser.id, "ACCOUNT_ALERT", "Membership activated", `Your ${payment.subscription.plan.name} membership is now active.`);
+    void sendAdminActivityEmail("Membership payment successful", { userId: req.authUser.id, name: req.authUser.displayName, email: req.authUser.email, plan: payment.subscription.plan.name, amount: `${payment.currency} ${payment.amount.toString()}`, paymentId: input.razorpayPaymentId, paidAt: new Date().toISOString() });
     return sendSuccess(res, { verified: true, subscription });
   } catch (error) { return next(error); }
 });
