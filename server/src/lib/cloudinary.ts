@@ -14,24 +14,49 @@ export async function uploadProfileImage(dataUrl: string) {
   const bytes = Buffer.from(base64, "base64");
   if (bytes.length > maxBytes) throw new AppError("Images must be 8MB or smaller", 400, "IMAGE_TOO_LARGE");
   if (!hasImageSignature(bytes, mime)) throw new AppError("The image file could not be validated", 400, "INVALID_IMAGE_FILE");
-  if (!env.CLOUDINARY_CLOUD_NAME || !env.CLOUDINARY_API_KEY || !env.CLOUDINARY_API_SECRET) {
+  const config = cloudinaryConfig();
+  if (!config.cloudName || !config.apiKey || !config.apiSecret) {
     if (env.NODE_ENV === "production") throw new AppError("Image uploads are not configured", 503, "UPLOADS_UNAVAILABLE");
     return dataUrl;
   }
   const timestamp = Math.floor(Date.now() / 1000).toString();
   const folder = "sshh-koi-hai/profiles";
-  const signature = crypto.createHash("sha1").update(`folder=${folder}&timestamp=${timestamp}${env.CLOUDINARY_API_SECRET}`).digest("hex");
-  const form = new FormData(); form.append("file", new Blob([bytes], { type: mime })); form.append("api_key", env.CLOUDINARY_API_KEY); form.append("timestamp", timestamp); form.append("folder", folder); form.append("signature", signature);
+  const signature = crypto.createHash("sha1").update(`folder=${folder}&timestamp=${timestamp}${config.apiSecret}`).digest("hex");
+  const form = new FormData(); form.append("file", new Blob([bytes], { type: mime })); form.append("api_key", config.apiKey); form.append("timestamp", timestamp); form.append("folder", folder); form.append("signature", signature);
   let response: Response;
   try {
-    response = await fetchWithTimeout(`https://api.cloudinary.com/v1_1/${env.CLOUDINARY_CLOUD_NAME}/image/upload`, { method: "POST", body: form });
+    response = await fetchWithTimeout(`https://api.cloudinary.com/v1_1/${encodeURIComponent(config.cloudName)}/image/upload`, { method: "POST", body: form });
   } catch {
     throw new AppError("Image storage service is unavailable. Please try again.", 502, "UPLOAD_PROVIDER_UNAVAILABLE");
   }
   const result = await response.json().catch(() => null) as { secure_url?: string; error?: { message?: string } } | null;
-  if (!response.ok) throw new AppError(result?.error?.message || "Image upload failed", 502, "UPLOAD_PROVIDER_ERROR");
+  if (!response.ok) {
+    const providerMessage = result?.error?.message || "Image upload failed";
+    if (providerMessage.toLowerCase().includes("invalid cloud_name")) throw new AppError("Cloudinary cloud name is invalid. Set CLOUDINARY_CLOUD_NAME to the Cloud name shown in your Cloudinary dashboard.", 503, "UPLOAD_PROVIDER_CONFIG_ERROR");
+    throw new AppError(providerMessage, 502, "UPLOAD_PROVIDER_ERROR");
+  }
   if (!result?.secure_url) throw new AppError("Image upload failed", 502, "UPLOAD_PROVIDER_ERROR");
   return result.secure_url;
+}
+
+function cloudinaryConfig() {
+  const rawCloudName = env.CLOUDINARY_CLOUD_NAME?.trim().replace(/^['"]|['"]$/g, "");
+  const urlConfig = env.CLOUDINARY_URL ? parseCloudinaryUrl(env.CLOUDINARY_URL) : null;
+  return {
+    cloudName: rawCloudName?.startsWith("cloudinary://") ? parseCloudinaryUrl(rawCloudName)?.cloudName : rawCloudName || urlConfig?.cloudName,
+    apiKey: env.CLOUDINARY_API_KEY?.trim() || urlConfig?.apiKey,
+    apiSecret: env.CLOUDINARY_API_SECRET?.trim() || urlConfig?.apiSecret,
+  };
+}
+
+function parseCloudinaryUrl(value: string) {
+  try {
+    const parsed = new URL(value.trim());
+    if (parsed.protocol !== "cloudinary:") return null;
+    return { cloudName: parsed.hostname, apiKey: decodeURIComponent(parsed.username), apiSecret: decodeURIComponent(parsed.password) };
+  } catch {
+    return null;
+  }
 }
 
 function hasImageSignature(bytes: Buffer, mime: string) {
