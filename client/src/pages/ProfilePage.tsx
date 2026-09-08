@@ -37,6 +37,7 @@ export default function ProfilePage() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [showMembershipPrompt, setShowMembershipPrompt] = useState(false);
   const [formVersion, setFormVersion] = useState(0);
 
   useEffect(() => {
@@ -74,8 +75,10 @@ export default function ProfilePage() {
     };
     try {
       const result = await api<{ profile: Profile; completion: number; visibilityNotice?: string }>("/profile/me", { method: "PUT", body: JSON.stringify(payload) });
+      const wasIncomplete = completion < 60;
       setProfile(result.profile); setCompletion(result.completion); setFormVersion((value) => value + 1);
       setNotice(result.visibilityNotice ?? "Your profile has been saved.");
+      if (wasIncomplete && result.completion >= 60) setShowMembershipPrompt(true);
     } catch (e) { setError(e instanceof Error ? e.message : "Unable to save profile"); }
     finally { setSaving(false); }
   }
@@ -171,5 +174,6 @@ export default function ProfilePage() {
         <div className="rounded-3xl border border-red-200 bg-red-50 p-7"><p className="text-xs uppercase tracking-[0.25em] text-red-700">Account settings</p><p className="mt-3 text-sm leading-6 text-red-900/70">Closing your account removes your profile and signs you out. This cannot be undone.</p><button type="button" onClick={deleteAccount} className="mt-5 rounded-full border border-red-300 px-4 py-2 text-sm font-semibold text-red-800">Delete account</button></div>
       </aside>
     </div>
+    {showMembershipPrompt && <div className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/60 p-5" role="dialog" aria-modal="true" aria-labelledby="membership-prompt-title"><div className="relative w-full max-w-lg overflow-hidden rounded-[2rem] bg-cream shadow-soft"><div className="absolute -right-16 -top-20 h-52 w-52 rounded-full bg-gold/25" /><div className="relative bg-plum px-7 pb-8 pt-8 text-cream sm:px-9"><button type="button" onClick={() => setShowMembershipPrompt(false)} aria-label="Close membership offer" className="absolute right-5 top-5 rounded-full border border-cream/25 px-3 py-1 text-lg leading-none text-cream/80 hover:bg-cream/10">×</button><p className="text-xs uppercase tracking-[0.28em] text-gold">Your profile is ready</p><h2 id="membership-prompt-title" className="mt-4 max-w-sm font-display text-4xl leading-tight">Now make the first hello easier.</h2><p className="mt-4 max-w-md text-sm leading-6 text-cream/70">Your introduction is ready to be discovered. Choose a membership when you are ready to meet people and start private conversations.</p></div><div className="relative px-7 py-7 sm:px-9"><div className="grid gap-3 sm:grid-cols-3"><div className="rounded-2xl border border-burgundy/10 bg-white/70 p-4"><p className="text-lg text-burgundy">✦</p><p className="mt-2 text-sm font-semibold">Discover</p><p className="mt-1 text-xs leading-5 text-charcoal/60">Browse thoughtful member profiles.</p></div><div className="rounded-2xl border border-burgundy/10 bg-white/70 p-4"><p className="text-lg text-burgundy">♡</p><p className="mt-2 text-sm font-semibold">Connect</p><p className="mt-1 text-xs leading-5 text-charcoal/60">Send interests to people you like.</p></div><div className="rounded-2xl border border-burgundy/10 bg-white/70 p-4"><p className="text-lg text-burgundy">↗</p><p className="mt-2 text-sm font-semibold">Chat privately</p><p className="mt-1 text-xs leading-5 text-charcoal/60">Membership unlocks private messaging.</p></div></div><div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><button type="button" onClick={() => setShowMembershipPrompt(false)} className="rounded-full border border-charcoal/15 px-5 py-3 text-sm font-semibold text-charcoal hover:border-burgundy/30">Maybe later</button><Link to="/membership" onClick={() => setShowMembershipPrompt(false)} className="rounded-full bg-burgundy px-5 py-3 text-center text-sm font-semibold text-cream hover:bg-plum">Explore membership</Link></div><p className="mt-4 text-center text-xs text-charcoal/45">Plans, pricing, and benefits are shown clearly before payment.</p></div></div></div>}
   </section>;
 }
