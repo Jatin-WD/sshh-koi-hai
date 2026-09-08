@@ -14,6 +14,18 @@ import { assertMessagingMembership } from "../lib/membership.js";
 const conversationRoom = (id: string) => `conversation:${id}`;
 const messageInput = z.object({ conversationId: z.string().min(1), content: z.string().trim().min(1).max(4000), type: z.literal("TEXT").default("TEXT") });
 const connectionAttempts = new Map<string, { count: number; resetAt: number }>();
+const maxTrackedConnectionIps = 10_000;
+
+function pruneConnectionAttempts(now: number) {
+  for (const [address, attempt] of connectionAttempts) {
+    if (attempt.resetAt <= now) connectionAttempts.delete(address);
+  }
+  if (connectionAttempts.size <= maxTrackedConnectionIps) return;
+  const oldest = [...connectionAttempts.entries()]
+    .sort(([, left], [, right]) => left.resetAt - right.resetAt)
+    .slice(0, connectionAttempts.size - maxTrackedConnectionIps);
+  for (const [address] of oldest) connectionAttempts.delete(address);
+}
 
 export function attachSocketServer(httpServer: HttpServer) {
   const io = new Server(httpServer, { cors: { origin: corsOrigins, credentials: true }, maxHttpBufferSize: 64 * 1024 });
@@ -21,6 +33,7 @@ export function attachSocketServer(httpServer: HttpServer) {
     try {
       const address = socket.handshake.address;
       const now = Date.now();
+      pruneConnectionAttempts(now);
       const attempt = connectionAttempts.get(address);
       if (!attempt || attempt.resetAt <= now) connectionAttempts.set(address, { count: 1, resetAt: now + 60_000 });
       else { attempt.count += 1; if (attempt.count > 30) throw new AppError("Too many connection attempts", 429, "SOCKET_RATE_LIMITED"); }
