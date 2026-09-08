@@ -59,7 +59,12 @@ router.post("/login", authRateLimit, async (req, res, next) => {
     const user = await prisma.user.findUnique({ where: { email: input.email } });
     if (!user || !(await bcrypt.compare(input.password, user.passwordHash)) || !user.isEmailVerified || ["SUSPENDED", "BANNED", "DELETED"].includes(user.status)) throw new AppError("Invalid email or password", 401, "INVALID_CREDENTIALS");
     const updated = await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date(), status: "ACTIVE" } });
-    await setAuthCookies(res, updated);
+    try {
+      await setAuthCookies(res, updated);
+    } catch (error) {
+      logger.error({ err: error, userId: updated.id }, "Session creation failed after login");
+      throw new AppError("Unable to establish your session. Please try again.", 503, "SESSION_CREATE_FAILED");
+    }
     void sendAdminActivityEmail("User login", { userId: updated.id, name: updated.displayName, email: updated.email, loggedInAt: updated.lastLoginAt?.toISOString() });
     return sendSuccess(res, { user: publicUser(updated) });
   } catch (error) { return next(error); }
