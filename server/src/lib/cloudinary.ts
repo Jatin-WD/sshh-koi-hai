@@ -43,9 +43,9 @@ function cloudinaryConfig() {
   const rawCloudName = env.CLOUDINARY_CLOUD_NAME?.trim().replace(/^['"]|['"]$/g, "");
   const urlConfig = env.CLOUDINARY_URL ? parseCloudinaryUrl(env.CLOUDINARY_URL) : null;
   return {
-    cloudName: rawCloudName?.startsWith("cloudinary://") ? parseCloudinaryUrl(rawCloudName)?.cloudName : rawCloudName || urlConfig?.cloudName,
-    apiKey: env.CLOUDINARY_API_KEY?.trim() || urlConfig?.apiKey,
-    apiSecret: env.CLOUDINARY_API_SECRET?.trim() || urlConfig?.apiSecret,
+    cloudName: urlConfig?.cloudName || (rawCloudName?.startsWith("cloudinary://") ? parseCloudinaryUrl(rawCloudName)?.cloudName : rawCloudName),
+    apiKey: urlConfig?.apiKey || env.CLOUDINARY_API_KEY?.trim(),
+    apiSecret: urlConfig?.apiSecret || env.CLOUDINARY_API_SECRET?.trim(),
   };
 }
 
