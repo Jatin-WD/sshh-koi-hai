@@ -74,7 +74,9 @@ app.use(
 app.use(cookieParser());
 // Razorpay signs the exact webhook bytes, so this route must bypass JSON parsing.
 app.use("/api/payments/razorpay/webhook", express.raw({ type: "application/json", limit: "256kb" }));
-app.use(express.json({ limit: "1mb" }));
+// Profile images are sent as base64 JSON. An 8 MB binary image expands to
+// roughly 10.7 MB when encoded, so leave room for the JSON envelope.
+app.use(express.json({ limit: "12mb" }));
 app.use(express.urlencoded({ extended: false, limit: "100kb", parameterLimit: 100 }));
 app.use(sharedTrafficLimit);
 app.use(trafficController);

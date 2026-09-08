@@ -20,6 +20,10 @@ export function errorHandler(
     return sendError(res, 400, "Please check the submitted details", "VALIDATION_ERROR");
   }
 
+  if (error && typeof error === "object" && "type" in error && error.type === "entity.too.large") {
+    return sendError(res, 413, "Image or request is too large. Please choose an image under 8MB.", "PAYLOAD_TOO_LARGE");
+  }
+
   if (process.env.NODE_ENV !== "production" && error instanceof Error) {
     logger.error({ err: error, method: req.method, path: req.originalUrl }, "Unexpected server error");
     return sendError(res, 500, error.message, "INTERNAL_SERVER_ERROR");
