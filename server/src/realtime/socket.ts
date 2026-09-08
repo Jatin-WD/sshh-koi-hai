@@ -9,6 +9,7 @@ import { assertChatEligibility } from "../lib/matching.js";
 import { AppError } from "../lib/appError.js";
 import { corsOrigins } from "../config/env.js";
 import { createNotification } from "../lib/notifications.js";
+import { assertMessagingMembership } from "../lib/membership.js";
 
 const conversationRoom = (id: string) => `conversation:${id}`;
 const messageInput = z.object({ conversationId: z.string().min(1), content: z.string().trim().min(1).max(4000), type: z.literal("TEXT").default("TEXT") });
@@ -44,6 +45,7 @@ function registerSocketHandlers(io: Server, socket: Socket) {
 }
 
 async function authorizeConversation(userId: string, conversationId: string | undefined) {
+  await assertMessagingMembership(userId);
   if (!conversationId) throw new AppError("Conversation is required", 400, "CONVERSATION_REQUIRED");
   const conversation = await prisma.conversation.findUnique({ where: { id: conversationId }, include: { match: true, members: { select: { id: true } } } });
   if (!conversation || !conversation.members.some((member) => member.id === userId)) throw new AppError("Conversation not found", 404, "CONVERSATION_NOT_FOUND");

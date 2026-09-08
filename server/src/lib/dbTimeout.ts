@@ -8,7 +8,10 @@ export async function withDbStatementTimeout<T>(
 ) {
   const statementTimeout = Math.max(1, Math.floor(timeoutMs));
   return prisma.$transaction(async (tx) => {
-    await tx.$executeRaw(Prisma.sql`SET LOCAL statement_timeout = ${statementTimeout}`);
+    // PostgreSQL does not accept a bind parameter in SET statements. The
+    // value is already clamped to a positive integer above, so interpolate
+    // that validated value as SQL instead of sending it as $1.
+    await tx.$executeRaw(Prisma.sql`SET LOCAL statement_timeout = ${Prisma.raw(String(statementTimeout))}`);
     return operation(tx);
   });
 }

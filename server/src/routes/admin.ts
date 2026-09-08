@@ -10,11 +10,12 @@ const router = Router();
 router.use(requireAdmin);
 
 const pageSchema = z.object({ page: z.coerce.number().int().min(1).default(1), pageSize: z.coerce.number().int().min(1).max(100).default(20) });
+const pagingWithMessages = pageSchema.extend({ pageSize: z.coerce.number().int().min(1).max(500).default(100) });
 const userSelect = { id: true, email: true, displayName: true, gender: true, city: true, maritalStatus: true, lookingFor: true, isEmailVerified: true, role: true, status: true, lastLoginAt: true, createdAt: true, updatedAt: true, profile: { select: { visibility: true, bio: true, profileImageUrls: true } } } as const;
 const safeUser = <T,>(user: T) => user;
 const amount = (value: Prisma.Decimal | null | undefined) => value?.toString() ?? "0.00";
 const slug = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 40) || `plan_${Date.now()}`;
-const parseMembershipMode = (value: unknown): string => value === "FREE_REGISTRATION_PAID_MESSAGING" ? "FREE_SIGNUP_PAID_CHAT" : typeof value === "string" ? value : settingDefaults.membershipMode;
+const parseMembershipMode = (value: unknown): string => value === "FREE_REGISTRATION_PAID_MESSAGING" ? "FREE_SIGNUP_PAID_CHAT" : value === "MEN_PAID_WOMEN_FREE" ? "EVERYONE_PAID" : typeof value === "string" ? value : settingDefaults.membershipMode;
 
 router.get("/stats", async (_req, res, next) => {
   try {
@@ -123,7 +124,41 @@ router.patch("/plans/:planId", async (req, res, next) => { try { const input = p
 router.get("/reports", async (req, res, next) => { try { const query = pageSchema.extend({ status: z.enum(["PENDING", "REVIEWED", "RESOLVED", "DISMISSED"]).optional() }).parse(req.query); const where = query.status ? { status: query.status } : {}; const [total, reports] = await Promise.all([prisma.report.count({ where }), prisma.report.findMany({ where, include: { reporter: { select: userSelect }, reportedUser: { select: userSelect }, reviewedBy: { select: { id: true, displayName: true, email: true } } }, orderBy: { createdAt: "desc" }, skip: (query.page - 1) * query.pageSize, take: query.pageSize })]); return sendSuccess(res, { reports, pagination: { page: query.page, pageSize: query.pageSize, total, totalPages: Math.ceil(total / query.pageSize) } }); } catch (error) { return next(error); } });
 router.patch("/reports/:reportId", async (req, res, next) => { try { const { status } = z.object({ status: z.enum(["PENDING", "REVIEWED", "RESOLVED", "DISMISSED"]) }).parse(req.body); const report = await prisma.report.update({ where: { id: req.params.reportId }, data: { status, reviewedAt: status === "PENDING" ? null : new Date(), reviewedById: status === "PENDING" ? null : req.authUser!.id } }); return sendSuccess(res, { report }); } catch (error) { return next(error); } });
 
-const settingDefaults = { membershipMode: "MEN_PAID_WOMEN_FREE", minimumAge: 18, maxProfileImages: 6, siteName: "Sshh... Koi Hai?", supportEmail: "hello@sshhkoihai.com", profileCompletionRequirement: 60 };
+router.get("/conversations", async (req, res, next) => {
+  try {
+    const query = pageSchema.extend({ search: z.string().trim().optional() }).parse(req.query);
+    const where: Prisma.ConversationWhereInput = query.search ? { members: { some: { OR: [{ email: { contains: query.search, mode: "insensitive" } }, { displayName: { contains: query.search, mode: "insensitive" } }] } } } : {};
+    const [total, conversations] = await Promise.all([
+      prisma.conversation.count({ where }),
+      prisma.conversation.findMany({ where, include: { members: { select: { id: true, email: true, displayName: true } }, _count: { select: { messages: true } }, messages: { orderBy: { createdAt: "desc" }, take: 1, select: { id: true, content: true, senderId: true, createdAt: true, readAt: true, deliveredAt: true } } }, orderBy: { lastMessageAt: "desc" }, skip: (query.page - 1) * query.pageSize, take: query.pageSize }),
+    ]);
+    return sendSuccess(res, { conversations: conversations.map((conversation) => ({ id: conversation.id, matchId: conversation.matchId, createdAt: conversation.createdAt, lastMessageAt: conversation.lastMessageAt, members: conversation.members, messageCount: conversation._count.messages, latestMessage: conversation.messages[0] ?? null })), pagination: { page: query.page, pageSize: query.pageSize, total, totalPages: Math.ceil(total / query.pageSize) } });
+  } catch (error) { return next(error); }
+});
+
+router.get("/conversations/:conversationId", async (req, res, next) => {
+  try {
+    const input = pagingWithMessages.parse(req.query);
+    const conversation = await prisma.conversation.findUnique({ where: { id: req.params.conversationId }, include: { members: { select: { id: true, email: true, displayName: true } } } });
+    if (!conversation) throw new AppError("Conversation not found", 404, "CONVERSATION_NOT_FOUND");
+    const [total, messages] = await Promise.all([
+      prisma.message.count({ where: { conversationId: conversation.id } }),
+      prisma.message.findMany({ where: { conversationId: conversation.id }, orderBy: { createdAt: "asc" }, skip: (input.page - 1) * input.pageSize, take: input.pageSize, select: { id: true, senderId: true, content: true, type: true, createdAt: true, deliveredAt: true, readAt: true, deletedAt: true } }),
+    ]);
+    return sendSuccess(res, { conversation: { id: conversation.id, matchId: conversation.matchId, createdAt: conversation.createdAt, lastMessageAt: conversation.lastMessageAt, members: conversation.members }, messages, pagination: { page: input.page, pageSize: input.pageSize, total, totalPages: Math.ceil(total / input.pageSize) } });
+  } catch (error) { return next(error); }
+});
+
+router.get("/conversations/:conversationId/export", async (req, res, next) => {
+  try {
+    const conversation = await prisma.conversation.findUnique({ where: { id: req.params.conversationId }, include: { members: { select: { id: true, email: true, displayName: true } }, messages: { orderBy: { createdAt: "asc" }, select: { id: true, senderId: true, content: true, type: true, createdAt: true, deliveredAt: true, readAt: true, deletedAt: true } } } });
+    if (!conversation) throw new AppError("Conversation not found", 404, "CONVERSATION_NOT_FOUND");
+    res.setHeader("Content-Disposition", `attachment; filename=conversation-${conversation.id}.json`);
+    return res.json({ exportedAt: new Date().toISOString(), conversation: { id: conversation.id, matchId: conversation.matchId, createdAt: conversation.createdAt, lastMessageAt: conversation.lastMessageAt, members: conversation.members }, messages: conversation.messages });
+  } catch (error) { return next(error); }
+});
+
+const settingDefaults = { membershipMode: "EVERYONE_PAID", minimumAge: 18, maxProfileImages: 6, siteName: "Sshh... Koi Hai?", supportEmail: "info@sshhkoihai.com", profileCompletionRequirement: 60 };
 router.get("/settings", async (_req, res, next) => { try { const rows = await prisma.siteSetting.findMany({ where: { key: { in: ["membershipMode", "business_model", "minimumAge", "maxProfileImages", "profile_image_max_count", "siteName", "supportEmail", "profileCompletionRequirement"] } } }); const values: Record<string, string | number> = { ...settingDefaults }; for (const row of rows) { if (row.key === "business_model") values.membershipMode = parseMembershipMode(row.value); else if (row.key === "profile_image_max_count") values.maxProfileImages = Number(row.value); else if (row.key === "membershipMode") values.membershipMode = parseMembershipMode(row.value); else if (typeof row.value === "string" || typeof row.value === "number") values[row.key] = row.value; } return sendSuccess(res, { settings: values }); } catch (error) { return next(error); } });
 router.put("/settings", async (req, res, next) => { try { const input = z.object({ membershipMode: z.enum(["EVERYONE_PAID", "MEN_PAID_WOMEN_FREE", "FREE_SIGNUP_PAID_CHAT"]), minimumAge: z.coerce.number().int().min(18).max(100), maxProfileImages: z.coerce.number().int().min(1).max(20), siteName: z.string().trim().min(2).max(120), supportEmail: z.string().email(), profileCompletionRequirement: z.coerce.number().int().min(0).max(100) }).parse(req.body); const writes = Object.entries({ ...input, business_model: input.membershipMode === "FREE_SIGNUP_PAID_CHAT" ? "FREE_REGISTRATION_PAID_MESSAGING" : input.membershipMode, profile_image_max_count: input.maxProfileImages }).map(([key, value]) => prisma.siteSetting.upsert({ where: { key }, update: { value, updatedById: req.authUser!.id }, create: { key, value, updatedById: req.authUser!.id } })); await prisma.$transaction(writes); return sendSuccess(res, { settings: input }); } catch (error) { return next(error); } });
 

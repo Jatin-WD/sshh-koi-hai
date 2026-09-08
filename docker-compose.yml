@@ -1,4 +1,16 @@
 services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   db:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -21,9 +33,15 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       PORT: 4000
+      REDIS_URL: redis://redis:6379
+      TRAFFIC_MAX_CONCURRENT_REQUESTS: ${TRAFFIC_MAX_CONCURRENT_REQUESTS:-200}
+      TRAFFIC_MAX_QUEUE_SIZE: ${TRAFFIC_MAX_QUEUE_SIZE:-500}
+      TRAFFIC_QUEUE_TIMEOUT_MS: ${TRAFFIC_QUEUE_TIMEOUT_MS:-5000}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       CLIENT_ORIGIN: ${CLIENT_ORIGIN:?Set CLIENT_ORIGIN}
       CORS_ORIGINS: ${CORS_ORIGINS:?Set CORS_ORIGINS}
@@ -64,3 +82,4 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:

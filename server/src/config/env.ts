@@ -1,5 +1,12 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+import path from "node:path";
 import { z } from "zod";
+
+// The workspace dev script runs from `server/`, while the shared .env lives
+// at the repository root. Load the current directory first, then fall back to
+// the repository-level file for local development.
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+dotenv.config({ path: path.resolve(process.cwd(), "../.env") });
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -9,6 +16,11 @@ const envSchema = z.object({
   REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(15000).transform((value) => Math.min(value, 60000)),
   DB_STATEMENT_TIMEOUT_MS: z.coerce.number().int().positive().default(5000).transform((value) => Math.min(value, 15000)),
   OUTBOUND_HTTP_TIMEOUT_MS: z.coerce.number().int().positive().default(8000).transform((value) => Math.min(value, 15000)),
+  TRAFFIC_MAX_CONCURRENT_REQUESTS: z.coerce.number().int().positive().default(200).transform((value) => Math.min(value, 5000)),
+  TRAFFIC_MAX_QUEUE_SIZE: z.coerce.number().int().nonnegative().default(500).transform((value) => Math.min(value, 10000)),
+  TRAFFIC_QUEUE_TIMEOUT_MS: z.coerce.number().int().positive().default(5000).transform((value) => Math.min(value, 60000)),
+  REDIS_URL: z.string().url().optional(),
+  REDIS_KEY_PREFIX: z.string().trim().min(1).max(80).default("sshh:traffic"),
   DATABASE_URL: z
     .string()
     .min(1)

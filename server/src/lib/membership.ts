@@ -23,11 +23,23 @@ export async function membershipIsRequired(userId: string) {
   const setting = await withDbStatementTimeout((tx) => tx.siteSetting.findUnique({ where: { key: "business_model" } }));
   const model = typeof setting?.value === "string" ? setting.value : undefined;
   if (model === "FREE_REGISTRATION_PAID_MESSAGING") return false;
-  if (model === "MEN_PAID_WOMEN_FREE") {
-    const user = await withDbStatementTimeout((tx) => tx.user.findUnique({ where: { id: userId }, select: { gender: true } }));
-    return user?.gender === "MALE";
-  }
+  if (model === "MEN_PAID_WOMEN_FREE") return true;
   return true;
+}
+
+export async function requireMessagingMembership(req: Request, res: Response, next: NextFunction) {
+  requireAuth(req, res, async (error) => {
+    if (error) return next(error);
+    try {
+      if (!req.authUser) throw new AppError("Authentication required", 401, "AUTH_REQUIRED");
+      await assertMessagingMembership(req.authUser.id);
+      next();
+    } catch (membershipError) { next(membershipError); }
+  });
+}
+
+export async function assertMessagingMembership(userId: string) {
+  if (!await getCurrentSubscription(userId)) throw new AppError("Choose at least a Basic membership to chat with this person", 402, "MEMBERSHIP_REQUIRED");
 }
 
 export async function requireMembership(req: Request, res: Response, next: NextFunction) {
@@ -41,7 +53,7 @@ export async function requireMembership(req: Request, res: Response, next: NextF
 }
 
 export function requireDiscoveryAccess(req: Request, res: Response, next: NextFunction) {
-  requireMembership(req, res, async (error) => {
+  requireAuth(req, res, async (error) => {
     if (error) return next(error);
     try {
       if (!req.authUser?.isEmailVerified) throw new AppError("Email verification is required", 403, "EMAIL_VERIFICATION_REQUIRED");

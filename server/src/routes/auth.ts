@@ -29,7 +29,7 @@ router.post("/register", authRateLimit, async (req, res, next) => {
   try {
     const input = registerSchema.parse(req.body);
     const existing = await prisma.user.findUnique({ where: { email: input.email } });
-    if (existing) throw new AppError("Unable to create an account with those details", 400, "REGISTRATION_UNAVAILABLE");
+    if (existing) throw new AppError("An account with this email already exists. Please sign in or use another email.", 400, "REGISTRATION_EMAIL_EXISTS");
     const passwordHash = await bcrypt.hash(input.password, 12);
     const user = await prisma.user.create({ data: { email: input.email, passwordHash, displayName: input.displayName, dateOfBirth: input.dateOfBirth, gender: input.gender, city: input.city, maritalStatus: input.maritalStatus, lookingFor: input.lookingFor, termsVersion: CURRENT_TERMS_VERSION, acceptedAt: new Date(), profile: { create: {} } } });
     const token = await createAuthToken(user.id, "EMAIL_VERIFICATION", env.EMAIL_VERIFICATION_TTL_HOURS * 3600000);

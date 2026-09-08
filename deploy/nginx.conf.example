@@ -1,10 +1,15 @@
 # Example edge reverse proxy. Terminate TLS at this layer in production.
 # Keep the client and server ports bound to localhost in docker-compose.yml.
+limit_req_zone $binary_remote_addr zone=api_per_ip:10m rate=20r/s;
+limit_conn_zone $binary_remote_addr zone=api_conn_per_ip:10m;
+
 server {
   listen 80;
   server_name sshhkoihai.com www.sshhkoihai.com;
 
   location /api/ {
+    limit_req zone=api_per_ip burst=80 nodelay;
+    limit_conn api_conn_per_ip 40;
     proxy_pass http://127.0.0.1:4000;
     proxy_http_version 1.1;
     proxy_set_header Host $host;
@@ -14,6 +19,7 @@ server {
   }
 
   location /socket.io/ {
+    limit_conn api_conn_per_ip 20;
     proxy_pass http://127.0.0.1:4000;
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
