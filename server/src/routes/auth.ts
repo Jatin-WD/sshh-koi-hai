@@ -8,6 +8,7 @@ import { AppError } from "../lib/appError.js";
 import { sendSuccess } from "../lib/apiResponse.js";
 import { clearAuthCookies, createOpaqueToken, hashToken, publicUser, setAuthCookies } from "../lib/auth.js";
 import { sendPasswordResetEmail, sendVerificationEmail } from "../lib/mail.js";
+import { logger } from "../lib/logger.js";
 import { requireAuth } from "../middleware/auth.js";
 import { authRateLimit, perIpCircuitBreaker } from "../middleware/security.js";
 
@@ -33,8 +34,21 @@ router.post("/register", authRateLimit, async (req, res, next) => {
     const passwordHash = await bcrypt.hash(input.password, 12);
     const user = await prisma.user.create({ data: { email: input.email, passwordHash, displayName: input.displayName, dateOfBirth: input.dateOfBirth, gender: input.gender, city: input.city, maritalStatus: input.maritalStatus, lookingFor: input.lookingFor, termsVersion: CURRENT_TERMS_VERSION, acceptedAt: new Date(), profile: { create: {} } } });
     const token = await createAuthToken(user.id, "EMAIL_VERIFICATION", env.EMAIL_VERIFICATION_TTL_HOURS * 3600000);
-    await sendVerificationEmail(user.email, user.displayName, token);
-    return sendSuccess(res, { user: publicUser(user), verificationRequired: true }, 201);
+    let verificationEmailSent = true;
+    try {
+      await sendVerificationEmail(user.email, user.displayName, token);
+    } catch (error) {
+      verificationEmailSent = false;
+      logger.error({ err: error, userId: user.id, email: user.email }, "Verification email delivery failed after registration");
+    }
+    return sendSuccess(res, {
+      user: publicUser(user),
+      verificationRequired: true,
+      verificationEmailSent,
+      message: verificationEmailSent
+        ? "Your account is ready. Check your email to verify it before signing in."
+        : "Your account was created, but the verification email could not be sent. Please use resend verification after SMTP is fixed.",
+    }, 201);
   } catch (error) { return next(error); }
 });
 
