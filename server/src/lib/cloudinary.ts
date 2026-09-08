@@ -22,10 +22,15 @@ export async function uploadProfileImage(dataUrl: string) {
   const folder = "sshh-koi-hai/profiles";
   const signature = crypto.createHash("sha1").update(`folder=${folder}&timestamp=${timestamp}${env.CLOUDINARY_API_SECRET}`).digest("hex");
   const form = new FormData(); form.append("file", new Blob([bytes], { type: mime })); form.append("api_key", env.CLOUDINARY_API_KEY); form.append("timestamp", timestamp); form.append("folder", folder); form.append("signature", signature);
-  const response = await fetchWithTimeout(`https://api.cloudinary.com/v1_1/${env.CLOUDINARY_CLOUD_NAME}/image/upload`, { method: "POST", body: form });
-  if (!response.ok) throw new AppError("Image upload failed", 502, "UPLOAD_PROVIDER_ERROR");
-  const result = await response.json() as { secure_url?: string };
-  if (!result.secure_url) throw new AppError("Image upload failed", 502, "UPLOAD_PROVIDER_ERROR");
+  let response: Response;
+  try {
+    response = await fetchWithTimeout(`https://api.cloudinary.com/v1_1/${env.CLOUDINARY_CLOUD_NAME}/image/upload`, { method: "POST", body: form });
+  } catch {
+    throw new AppError("Image storage service is unavailable. Please try again.", 502, "UPLOAD_PROVIDER_UNAVAILABLE");
+  }
+  const result = await response.json().catch(() => null) as { secure_url?: string; error?: { message?: string } } | null;
+  if (!response.ok) throw new AppError(result?.error?.message || "Image upload failed", 502, "UPLOAD_PROVIDER_ERROR");
+  if (!result?.secure_url) throw new AppError("Image upload failed", 502, "UPLOAD_PROVIDER_ERROR");
   return result.secure_url;
 }
 

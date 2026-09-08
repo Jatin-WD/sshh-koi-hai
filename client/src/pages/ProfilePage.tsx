@@ -36,6 +36,7 @@ export default function ProfilePage() {
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [formVersion, setFormVersion] = useState(0);
 
   useEffect(() => {
@@ -82,15 +83,18 @@ export default function ProfilePage() {
   async function upload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
-    if (!file.type.match(/^image\/(jpeg|png|webp)$/) || file.size > 8 * 1024 * 1024) { setError("Choose a JPG, PNG, or WebP image under 8MB."); return; }
+    setError(""); setNotice(""); setUploading(true);
+    if (!file.type.match(/^image\/(jpeg|png|webp)$/) || file.size > 8 * 1024 * 1024) { setUploading(false); setError("Choose a JPG, PNG, or WebP image under 8MB."); return; }
     const reader = new FileReader();
     reader.onload = async () => {
-      if (typeof reader.result !== "string") return;
+      if (typeof reader.result !== "string") { setUploading(false); setError("The selected image could not be read. Please try another file."); return; }
       try {
         const result = await api<{ profileImages: string[]; primaryImageIndex: number }>("/profile/images", { method: "POST", body: JSON.stringify({ imageData: reader.result }) });
         setProfile({ ...profile, profileImages: result.profileImages, primaryImageIndex: result.primaryImageIndex }); setNotice("Photo added to your profile.");
       } catch (e) { setError(e instanceof Error ? e.message : "Unable to upload image"); }
+      finally { setUploading(false); }
     };
+    reader.onerror = () => { setUploading(false); setError("The selected image could not be read. Please try another file."); };
     reader.readAsDataURL(file); event.target.value = "";
   }
 
@@ -162,7 +166,7 @@ export default function ProfilePage() {
       <aside className="space-y-6">
         <div className="rounded-3xl border border-burgundy/10 bg-plum p-7 text-cream shadow-soft"><p className="text-xs uppercase tracking-[0.25em] text-gold">Profile preview</p><div className="mt-6 flex h-64 items-end rounded-2xl bg-gradient-to-br from-rose/70 via-burgundy to-charcoal p-4">{profile.profileImages[profile.primaryImageIndex] ? <img src={profile.profileImages[profile.primaryImageIndex]} alt="Your selected profile" className="h-full w-full rounded-xl object-cover" /> : <p className="font-display text-2xl text-cream/70">Add your first photo.</p>}</div><h2 className="mt-5 font-display text-3xl">{profile.displayName}, {profile.age}</h2><p className="mt-2 text-sm text-cream/60">{profile.city || "City private"} · {profile.lookingFor || "Open to discovery"}</p><p className="mt-4 text-sm leading-6 text-cream/65">{profile.bio || "Your introduction will appear here."}</p>{profile.interests.length > 0 && <div className="mt-5 flex flex-wrap gap-2">{profile.interests.slice(0, 6).map((interest) => <span key={interest} className="rounded-full border border-cream/20 px-3 py-1 text-xs text-cream/75">{interest}</span>)}</div>}</div>
 
-        <div className="rounded-3xl border border-charcoal/10 bg-white/80 p-7 shadow-soft"><div className="flex items-center justify-between"><div><p className="text-xs uppercase tracking-[0.25em] text-burgundy/65">Photo gallery</p><p className="mt-1 text-sm text-charcoal/55">{profile.profileImages.length} of 6 photos</p></div>{profile.profileImages.length < 6 && <label className="cursor-pointer rounded-full bg-burgundy px-4 py-2 text-xs font-semibold text-cream">Add photo<input type="file" accept="image/jpeg,image/png,image/webp" onChange={upload} className="hidden" /></label>}</div><div className="mt-5 grid grid-cols-3 gap-3">{Array.from({ length: 6 }, (_, index) => { const image = profile.profileImages[index]; return <div key={index} className="relative aspect-square">{image ? <><img src={image} alt={`Profile ${index + 1}`} className={`h-full w-full rounded-xl object-cover ${index === profile.primaryImageIndex ? "ring-2 ring-gold" : ""}`} /><button type="button" onClick={() => makePrimary(index)} className="absolute bottom-1 left-1 rounded bg-charcoal/75 px-1.5 py-1 text-[10px] text-white">{index === profile.primaryImageIndex ? "Primary" : "Set primary"}</button><button type="button" onClick={() => removeImage(index)} className="absolute right-1 top-1 rounded bg-charcoal/75 px-1.5 py-1 text-[10px] text-white">Remove</button></> : <label className="flex h-full cursor-pointer items-center justify-center rounded-xl border border-dashed border-charcoal/15 bg-cream/50 text-center text-xs text-charcoal/45">+ Add photo<input type="file" accept="image/jpeg,image/png,image/webp" onChange={upload} className="hidden" /></label>}</div>; })}</div><p className="mt-4 text-xs leading-5 text-charcoal/50">Use clear, recent photos. JPG, PNG, or WebP, maximum 8MB each.</p></div>
+        <div className="rounded-3xl border border-charcoal/10 bg-white/80 p-7 shadow-soft"><div className="flex items-center justify-between"><div><p className="text-xs uppercase tracking-[0.25em] text-burgundy/65">Photo gallery</p><p className="mt-1 text-sm text-charcoal/55">{profile.profileImages.length} of 6 photos</p></div>{profile.profileImages.length < 6 && <label className={`rounded-full bg-burgundy px-4 py-2 text-xs font-semibold text-cream ${uploading ? "pointer-events-none opacity-60" : "cursor-pointer"}`}>{uploading ? "Uploading..." : "Add photo"}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={upload} disabled={uploading} className="hidden" /></label>}</div><div className="mt-5 grid grid-cols-3 gap-3">{Array.from({ length: 6 }, (_, index) => { const image = profile.profileImages[index]; return <div key={index} className="relative aspect-square">{image ? <><img src={image} alt={`Profile ${index + 1}`} className={`h-full w-full rounded-xl object-cover ${index === profile.primaryImageIndex ? "ring-2 ring-gold" : ""}`} /><button type="button" onClick={() => makePrimary(index)} className="absolute bottom-1 left-1 rounded bg-charcoal/75 px-1.5 py-1 text-[10px] text-white">{index === profile.primaryImageIndex ? "Primary" : "Set primary"}</button><button type="button" onClick={() => removeImage(index)} className="absolute right-1 top-1 rounded bg-charcoal/75 px-1.5 py-1 text-[10px] text-white">Remove</button></> : <label className={`flex h-full items-center justify-center rounded-xl border border-dashed border-charcoal/15 bg-cream/50 text-center text-xs text-charcoal/45 ${uploading ? "pointer-events-none opacity-60" : "cursor-pointer"}`}>+ Add photo<input type="file" accept="image/jpeg,image/png,image/webp" onChange={upload} disabled={uploading} className="hidden" /></label>}</div>; })}</div><p className="mt-4 text-xs leading-5 text-charcoal/50">Use clear, recent photos. JPG, PNG, or WebP, maximum 8MB each.</p></div>
 
         <div className="rounded-3xl border border-red-200 bg-red-50 p-7"><p className="text-xs uppercase tracking-[0.25em] text-red-700">Account settings</p><p className="mt-3 text-sm leading-6 text-red-900/70">Closing your account removes your profile and signs you out. This cannot be undone.</p><button type="button" onClick={deleteAccount} className="mt-5 rounded-full border border-red-300 px-4 py-2 text-sm font-semibold text-red-800">Delete account</button></div>
       </aside>
