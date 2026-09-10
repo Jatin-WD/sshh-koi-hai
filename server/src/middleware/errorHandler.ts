@@ -23,6 +23,7 @@ export function errorHandler(
 
   if (error instanceof Prisma.PrismaClientInitializationError || error instanceof Prisma.PrismaClientRustPanicError || isDatabaseConnectionError(error)) {
     logger.error({ err: error, method: req.method, path: req.originalUrl }, "Database unavailable during API request");
+    res.set("Retry-After", "5");
     return sendError(res, 503, "The private space is temporarily unavailable. Please try again in a moment.", "DATABASE_UNAVAILABLE");
   }
 
