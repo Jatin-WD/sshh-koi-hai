@@ -41,11 +41,12 @@ export default function ProfilePage() {
   const [showMembershipPrompt, setShowMembershipPrompt] = useState(false);
   const [formVersion, setFormVersion] = useState(0);
 
-  useEffect(() => {
-    api<{ profile: Profile; completion: number }>("/profile/me")
-      .then((data) => { setProfile(data.profile); setCompletion(data.completion); })
-      .catch((e) => setError(e instanceof Error ? e.message : "Unable to load profile"));
-  }, []);
+  async function loadProfile() {
+    setError("");
+    try { const data = await api<{ profile: Profile; completion: number }>("/profile/me"); setProfile(data.profile); setCompletion(data.completion); }
+    catch (e) { setError(e instanceof Error ? e.message : "Unable to load profile"); }
+  }
+  useEffect(() => { void loadProfile(); }, []);
 
   useEffect(() => {
     if (!showMembershipPrompt) return;
@@ -54,7 +55,7 @@ export default function ProfilePage() {
     return () => { document.body.style.overflow = previousOverflow; };
   }, [showMembershipPrompt]);
 
-  if (!profile) return <section className="mx-auto max-w-5xl px-6 py-16"><p>{error || "Loading your profile..."}</p></section>;
+  if (!profile) return <section className="mx-auto max-w-5xl px-6 py-16"><div className="rounded-3xl border border-charcoal/10 bg-white/70 p-8 text-center"><p className={error ? "text-red-800" : "text-charcoal/60"}>{error || "Loading your profile..."}</p>{error && <button type="button" onClick={() => void loadProfile()} className="mt-5 rounded-full bg-burgundy px-5 py-3 text-sm font-semibold text-cream">Try again</button>}</div></section>;
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
