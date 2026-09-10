@@ -1,5 +1,5 @@
 import { Prisma, type Prisma as PrismaTypes } from "@prisma/client";
-import { prisma } from "../db/prisma.js";
+import { prisma, reconnectDatabase } from "../db/prisma.js";
 import { env } from "../config/env.js";
 
 export async function withDbStatementTimeout<T>(
@@ -20,7 +20,7 @@ export async function withDbStatementTimeout<T>(
       });
     } catch (error) {
       if (attempt >= maxRetries || !isTransientDatabaseError(error)) throw error;
-      try { await prisma.$disconnect(); await prisma.$connect(); } catch { /* The next bounded attempt reports the original failure. */ }
+      try { await reconnectDatabase(); } catch { /* The next bounded attempt reports the original failure. */ }
       await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
     }
   }
@@ -28,5 +28,6 @@ export async function withDbStatementTimeout<T>(
 
 function isTransientDatabaseError(error: unknown) {
   const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
-  return /tls|ssl|econnreset|econnrefused|timed out|timeout|connection.*closed|server has gone away/.test(message);
+  const code = error && typeof error === "object" && "code" in error && typeof error.code === "string" ? error.code : "";
+  return code === "GenericFailure" || /tls|ssl|econnreset|econnrefused|timed out|timeout|connection.*closed|server has gone away/.test(message);
 }
