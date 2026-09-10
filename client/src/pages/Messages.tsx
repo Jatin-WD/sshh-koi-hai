@@ -56,6 +56,7 @@ export default function Messages() {
   }, [user?.id]);
   useEffect(() => { if (!selectedId) return; setError(""); void loadMessages(selectedId); socketRef.current?.emit("conversation:join", { conversationId: selectedId }); }, [selectedId]);
   useEffect(() => { const nextId = routeId ?? query.get("conversationId") ?? ""; if (nextId && nextId !== selectedId && selectedId) setSelectedId(nextId); }, [routeId, query, selectedId]);
+  useEffect(() => { if (!selectedId && (routeId || query.get("conversationId"))) navigate("/app/messages", { replace: true }); }, [selectedId, routeId, query, navigate]);
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
   function sendMessage(event: FormEvent) { event.preventDefault(); const content = draft.trim(); if (!content || !selectedId || !socketRef.current?.connected || sending) return; pendingDraftRef.current = content; setSending(true); socketRef.current.emit("message:send", { conversationId: selectedId, content, type: "TEXT" }); socketRef.current.emit("conversation:typing", { conversationId: selectedId, typing: false }); setTimeout(() => setSending(false), 5000); }
   function changeDraft(value: string) { setDraft(value); if (selectedId) socketRef.current?.emit("conversation:typing", { conversationId: selectedId, typing: value.length > 0 }); }
