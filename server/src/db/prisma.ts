@@ -20,12 +20,19 @@ export const prisma =
 const retryableReadActions = new Set(["findUnique", "findUniqueOrThrow", "findFirst", "findFirstOrThrow", "findMany", "count", "aggregate", "groupBy", "queryRaw"]);
 const transientDatabaseError = (error: unknown) => { const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase(); return /tls|ssl|econnreset|econnrefused|timed out|timeout|connection.*closed|server has gone away/.test(message); };
 const pause = (duration: number) => new Promise((resolve) => setTimeout(resolve, duration));
+let reconnectPromise: Promise<void> | null = null;
+async function refreshConnection() {
+  if (!reconnectPromise) {
+    reconnectPromise = prisma.$disconnect().then(() => prisma.$connect()).finally(() => { reconnectPromise = null; });
+  }
+  await reconnectPromise;
+}
 
 prisma.$use(async (params, next) => {
   if (!retryableReadActions.has(params.action)) return next(params);
   for (let attempt = 0; ; attempt += 1) {
     try { return await next(params); }
-    catch (error) { if (attempt >= 2 || !transientDatabaseError(error)) throw error; await pause(150 * (attempt + 1)); }
+    catch (error) { if (attempt >= 2 || !transientDatabaseError(error)) throw error; try { await refreshConnection(); } catch { /* The next bounded attempt will return the original database error. */ } await pause(150 * (attempt + 1)); }
   }
 });
 
