@@ -60,6 +60,10 @@ function normalizeDatabaseUrl(url: string) {
   const normalized = new URL(url);
   normalized.searchParams.set("connect_timeout", "5");
   normalized.searchParams.set("pool_timeout", "10");
+  // Supabase pooler connections require TLS. Keeping this in code also
+  // prevents a deployment env without an explicit query string from falling
+  // back to the platform's incompatible default TLS behavior.
+  if (env.NODE_ENV === "production" || normalized.hostname.endsWith("supabase.com")) normalized.searchParams.set("sslmode", "require");
   return normalized.toString();
 }
 
