@@ -19,6 +19,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => { refreshUser().finally(() => setLoading(false)); }, []);
   async function signOut() {
     try { await api("/auth/logout", { method: "POST" }); }
+    catch { /* Clear the local session even when the server is temporarily unavailable. */ }
     finally { setUser(null); }
   }
   return <AuthContext.Provider value={{ user, loading, refreshUser, signOut }}>{children}</AuthContext.Provider>;
