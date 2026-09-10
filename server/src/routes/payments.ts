@@ -39,6 +39,9 @@ router.post("/razorpay/order", requireAuth, async (req, res, next) => {
     const plan = await prisma.subscriptionPlan.findFirst({ where: { code: planCode, active: true } });
     if (!plan) throw new AppError("This membership plan is unavailable", 404, "PLAN_NOT_FOUND");
     if (!req.authUser) throw new AppError("Authentication required", 401, "AUTH_REQUIRED");
+    const retryWindow = new Date(Date.now() - 30 * 60 * 1000);
+    const existing = await prisma.payment.findFirst({ where: { userId: req.authUser.id, planId: plan.id, status: "PENDING", createdAt: { gte: retryWindow }, razorpayOrderId: { not: null } }, include: { subscription: true }, orderBy: { createdAt: "desc" } });
+    if (existing?.subscription?.status === "PENDING" && existing.razorpayOrderId) return sendSuccess(res, { orderId: existing.razorpayOrderId, amount: Math.round(Number(plan.price) * 100), currency: plan.currency, paymentId: existing.id, plan: { code: plan.code, name: plan.name } });
     const pending = await prisma.subscription.create({ data: { userId: req.authUser.id, planId: plan.id, status: "PENDING" } });
     const amount = Math.round(Number(plan.price) * 100);
     const response = await fetchWithTimeout("https://api.razorpay.com/v1/orders", { method: "POST", headers: { Authorization: `Basic ${Buffer.from(`${env.RAZORPAY_KEY_ID}:${env.RAZORPAY_KEY_SECRET}`).toString("base64")}`, "Content-Type": "application/json" }, body: JSON.stringify({ amount, currency: plan.currency, receipt: pending.id, notes: { planCode: plan.code, userId: req.authUser.id } }) });
