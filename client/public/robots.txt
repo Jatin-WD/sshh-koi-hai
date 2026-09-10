@@ -9,6 +9,8 @@ Disallow: /matches/
 Disallow: /messages/
 Disallow: /notifications/
 Disallow: /profile/
+Disallow: /app/
+Disallow: /onboarding
 Disallow: /checkout/
 Disallow: /payment/
 Disallow: /login
