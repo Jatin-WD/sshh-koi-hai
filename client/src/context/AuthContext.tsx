@@ -14,11 +14,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       // Keep an existing session during temporary API/DB outages. Only a
       // confirmed 401 means the local user is no longer authenticated.
-      if (error instanceof ApiError && error.status === 401) setUser(null);
-      return null;
+      if (error instanceof ApiError && error.status === 401) { setUser(null); return null; }
+      // Keep an already-established local session during a transient outage,
+      // but let a fresh login surface the actual infrastructure error.
+      if (user) return null;
+      throw error;
     }
   }
-  useEffect(() => { refreshUser().finally(() => setLoading(false)); }, []);
+  useEffect(() => { refreshUser().catch(() => undefined).finally(() => setLoading(false)); }, []);
   async function signOut() {
     try { await api("/auth/logout", { method: "POST" }); }
     catch { /* Clear the local session even when the server is temporarily unavailable. */ }
