@@ -6,7 +6,7 @@ import { clientEnv } from "../env";
 type Plan = { id: string; name: string; code: string; durationMonths: number; price: string; currency: string; description?: string | null; featured: boolean };
 declare global { interface Window { Razorpay?: new (options: Record<string, unknown>) => { open: () => void }; } }
 
-const benefits = ["Discover complete member profiles", "Send interests and see mutual matches", "Start private conversations after acceptance", "Use discovery filters to find compatible intentions"];
+const benefits = ["Discover complete member profiles", "Send unlimited interests and see mutual matches", "Start private conversations after acceptance", "Use discovery filters to find compatible intentions"];
 
 export default function MembershipPage() {
   const [plans, setPlans] = useState<Plan[]>([]); const [error, setError] = useState(""); const [loading, setLoading] = useState(true); const [busyPlan, setBusyPlan] = useState(""); const navigate = useNavigate();
