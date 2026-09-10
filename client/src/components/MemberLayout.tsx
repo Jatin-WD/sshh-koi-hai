@@ -4,7 +4,7 @@ import NotificationBell from "./NotificationBell";
 import { useAuth } from "../context/AuthContext";
 
 type IconName = "discover" | "likes" | "matches" | "chat" | "profile";
-const nav: Array<[string, string, IconName]> = [["/app/discover", "Discover", "discover"], ["/app/likes", "Likes", "likes"], ["/app/matches", "Matches", "matches"], ["/app/messages", "Chat", "chat"]];
+const nav: Array<[string, string, IconName]> = [["/app/discover", "Find people", "discover"], ["/app/likes", "Likes", "likes"], ["/app/matches", "Matches", "matches"], ["/app/messages", "Chat", "chat"]];
 
 function NavIcon({ name }: { name: IconName }) {
   const common = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
