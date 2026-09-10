@@ -64,6 +64,7 @@ function normalizeDatabaseUrl(url: string) {
   // prevents a deployment env without an explicit query string from falling
   // back to the platform's incompatible default TLS behavior.
   if (env.NODE_ENV === "production" || normalized.hostname.endsWith("supabase.com")) normalized.searchParams.set("sslmode", "require");
+  if (normalized.hostname.endsWith("supabase.com")) normalized.searchParams.set("connection_limit", "5");
   return normalized.toString();
 }
 

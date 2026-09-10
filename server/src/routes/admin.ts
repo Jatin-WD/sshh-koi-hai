@@ -22,7 +22,10 @@ router.get("/stats", async (_req, res, next) => {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const [totalUsers, activeUsers, men, women, verifiedUsers, activeSubscriptions, monthlyRevenue, totalRevenue, newUsers, reports, activeMatches] = await Promise.all([
+    // Keep dashboard reads on one database connection. Supabase's session
+    // pooler has a small connection ceiling, and running all metrics in
+    // parallel can exhaust it during admin traffic.
+    const [totalUsers, activeUsers, men, women, verifiedUsers, activeSubscriptions, monthlyRevenue, totalRevenue, newUsers, reports, activeMatches] = await prisma.$transaction([
       prisma.user.count({ where: { status: { not: "DELETED" } } }),
       prisma.user.count({ where: { status: "ACTIVE" } }),
       prisma.user.count({ where: { gender: "MALE", status: { not: "DELETED" } } }),
