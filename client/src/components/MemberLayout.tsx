@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 
 const nav = [
   ["/account", "Home", "⌂"],
-  ["/discover", "Discover", "♡"],
+  ["/discover", "Find people", "♡"],
   ["/matches", "Matches", "✦"],
   ["/messages", "Messages", "☏"],
 ];
