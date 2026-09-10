@@ -27,6 +27,7 @@ const checks = [
   { path: "/messages", status: 200, html: true, contains: 'name="robots" content="noindex,nofollow"' },
   { path: "/robots.txt", status: 200, html: true },
   { path: "/api/health", status: 200, json: (body) => body.success === true && body.status === "ok" },
+  { path: "/api/health/db?probe=1", status: 200, json: (body) => body.success === true && body.status === "ok" && body.database === "connected" },
   { path: "/api/subscriptions/plans", status: 200, json: (body) => Array.isArray(body.plans) && body.plans.every((plan) => plan.code && plan.currency && plan.price !== undefined) },
   { path: "/api/profile/me", status: 401, json: (body) => body.success === false },
   { path: "/api/discover", status: 401, json: (body) => body.success === false },
