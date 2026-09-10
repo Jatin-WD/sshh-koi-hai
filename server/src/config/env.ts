@@ -43,6 +43,8 @@ const envSchema = z.object({
   SMTP_FROM: z.string().optional(),
   SMTP_FROM_NAME: z.string().optional(),
   ADMIN_ACTIVITY_EMAIL: z.string().email().default("contact.sshhkoihai@gmail.com"),
+  // Optional in development; required for production admin access.
+  ADMIN_LOGIN_EMAIL: z.string().email().optional(),
   RAZORPAY_KEY_ID: z.string().optional(),
   RAZORPAY_KEY_SECRET: z.string().optional(),
   RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
