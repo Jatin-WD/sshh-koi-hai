@@ -8,7 +8,7 @@ type Session = { id: string; createdAt: string; expiresAt: string };
 type Membership = { subscription: { plan: { name: string }; startDate: string | null; endDate: string | null } | null };
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) { return <div className="rounded-3xl border border-charcoal/10 bg-white/80 p-6 shadow-soft sm:p-7"><h2 className="font-display text-2xl">{title}</h2>{children}</div>; }
-function Field({ label, value, onChange, type = "text" }: { label: string; value: string; onChange: (value: string) => void; type?: string }) { return <label className="block text-sm text-charcoal/75">{label}<input type={type} autoComplete={type === "password" ? "current-password" : undefined} className="profile-input" value={value} onChange={(e) => onChange(e.target.value)} /></label>; }
+function Field({ label, value, onChange, type = "text" }: { label: string; value: string; onChange: (value: string) => void; type?: string }) { return <label className="block text-sm text-charcoal/75">{label}<input type={type} autoComplete={type === "password" ? (label.toLowerCase().includes("new") ? "new-password" : "current-password") : undefined} className="profile-input" value={value} onChange={(e) => onChange(e.target.value)} /></label>; }
 function Feedback({ error, message, retry }: { error?: string; message?: string; retry?: () => void }) { return <>{error && <div role="alert" className="mt-4 rounded-xl bg-red-50 p-4 text-sm text-red-800"><p>{error}</p>{retry && <button type="button" onClick={retry} className="mt-2 font-semibold underline">Try again</button>}</div>}{message && <p role="status" className="mt-4 rounded-xl bg-green-50 p-4 text-sm text-green-800">{message}</p>}</>; }
 
 export function AccountSettings() {
