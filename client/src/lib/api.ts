@@ -1,5 +1,17 @@
 import { clientEnv } from "../env";
 
+export class ApiError extends Error {
+  status: number;
+  code?: string;
+
+  constructor(message: string, status: number, code?: string) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
+  }
+}
+
 let refreshPromise: Promise<void> | null = null;
 
 async function refreshSession() {
@@ -31,7 +43,7 @@ export async function api<T>(path: string, options: RequestInit = {}, canRefresh
 
   try {
     const response = await fetch(`${clientEnv.VITE_API_BASE_URL}${path}`, { ...options, signal: controller.signal, credentials: "include", headers: { "Content-Type": "application/json", ...options.headers } });
-    let payload: { success: boolean; data?: T; error?: { message?: string } } | null = null;
+    let payload: { success: boolean; data?: T; error?: { message?: string; code?: string } } | null = null;
     try {
       payload = await response.json() as { success: boolean; data?: T; error?: { message?: string } };
     } catch {
@@ -45,7 +57,7 @@ export async function api<T>(path: string, options: RequestInit = {}, canRefresh
         // Preserve the original API error below when the refresh cookie is also invalid.
       }
     }
-    if (!response.ok || !payload?.success) throw new Error(payload?.error?.message ?? `Request failed with status ${response.status}`);
+    if (!response.ok || !payload?.success) throw new ApiError(payload?.error?.message ?? `Request failed with status ${response.status}`, response.status, payload?.error?.code);
     return payload.data as T;
   } finally {
     clearTimeout(timeout);

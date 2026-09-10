@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { api, type AuthUser } from "../lib/api";
+import { api, ApiError, type AuthUser } from "../lib/api";
 
 const AuthContext = createContext<{ user: AuthUser | null; loading: boolean; refreshUser: () => Promise<AuthUser | null>; signOut: () => Promise<void> }>({ user: null, loading: true, refreshUser: async () => null, signOut: async () => {} });
 
@@ -11,8 +11,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await api<{ user: AuthUser }>("/auth/me");
       setUser(result.user);
       return result.user;
-    } catch {
-      setUser(null);
+    } catch (error) {
+      // Keep an existing session during temporary API/DB outages. Only a
+      // confirmed 401 means the local user is no longer authenticated.
+      if (error instanceof ApiError && error.status === 401) setUser(null);
       return null;
     }
   }
