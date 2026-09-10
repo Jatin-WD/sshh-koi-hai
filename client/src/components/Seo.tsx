@@ -6,7 +6,7 @@ const siteName = "Sshh... Koi Hai?";
 
 const pageSeo: Record<string, { title: string; description: string }> = {
   "/": {
-    title: "Sshh... Koi Hai? | Private Conversations & Meaningful Connections",
+    title: "Sshh... Koi Hai? | Private Connections for Adults",
     description: "A discreet, privacy-first dating space for verified adults to discover meaningful connections and start private conversations.",
   },
   "/about": {

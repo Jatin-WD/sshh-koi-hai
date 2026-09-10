@@ -19,6 +19,7 @@ body {
     radial-gradient(circle at top right, rgba(200, 169, 107, 0.14), transparent 24%),
     linear-gradient(180deg, #faf5ef 0%, #f6efe7 100%);
   overflow-x: hidden;
+  color: #19171b;
 }
 
 * {
@@ -40,6 +41,11 @@ textarea {
 
 button {
   cursor: pointer;
+}
+
+button,
+a {
+  min-height: 44px;
 }
 
 button:disabled {
@@ -65,7 +71,8 @@ button:disabled {
   background: rgba(246, 239, 231, 0.4);
   padding: 0.75rem 1rem;
   outline: none;
-}
+  min-height: 48px;
+  }
 
 .profile-input:focus {
   border-color: #5a1f2f;
@@ -78,6 +85,20 @@ button:disabled {
 
 main > * {
   animation: page-enter 420ms ease-out both;
+}
+
+.eyebrow {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+
+.surface-card {
+  border: 1px solid rgba(25, 23, 27, 0.1);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 16px 36px rgba(25, 23, 27, 0.06);
 }
 
 .skeleton {
