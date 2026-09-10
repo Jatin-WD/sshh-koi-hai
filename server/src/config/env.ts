@@ -71,10 +71,13 @@ function normalizeDatabaseUrl(url: string) {
   if (normalized.hostname.endsWith("supabase.com")) {
     normalized.searchParams.set("connection_limit", "5");
     if (env.DATABASE_SSL_CA_BASE64) {
-      const caPath = path.join(os.tmpdir(), "sshh-supabase-prod-ca.crt");
-      fs.writeFileSync(caPath, Buffer.from(env.DATABASE_SSL_CA_BASE64, "base64"), { mode: 0o600 });
-      normalized.searchParams.set("sslmode", "verify-full");
-      normalized.searchParams.set("sslrootcert", caPath);
+      const ca = Buffer.from(env.DATABASE_SSL_CA_BASE64, "base64").toString("utf8");
+      if (ca.includes("-----BEGIN CERTIFICATE-----") && ca.includes("-----END CERTIFICATE-----")) {
+        const caPath = path.join(os.tmpdir(), "sshh-supabase-prod-ca.crt");
+        fs.writeFileSync(caPath, ca, { mode: 0o600 });
+        normalized.searchParams.set("sslmode", "verify-full");
+        normalized.searchParams.set("sslrootcert", caPath);
+      }
     }
   }
   if (env.DATABASE_SSL_ACCEPT_INVALID_CERTS) normalized.searchParams.set("sslaccept", "accept_invalid_certs");
