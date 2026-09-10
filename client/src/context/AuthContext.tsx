@@ -17,7 +17,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
   useEffect(() => { refreshUser().finally(() => setLoading(false)); }, []);
-  async function signOut() { await api("/auth/logout", { method: "POST" }); setUser(null); }
+  async function signOut() {
+    try { await api("/auth/logout", { method: "POST" }); }
+    finally { setUser(null); }
+  }
   return <AuthContext.Provider value={{ user, loading, refreshUser, signOut }}>{children}</AuthContext.Provider>;
 }
 export function useAuth() { return useContext(AuthContext); }
