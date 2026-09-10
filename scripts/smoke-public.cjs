@@ -29,6 +29,9 @@ const checks = [
   { path: "/api/health", status: 200, json: (body) => body.success === true && body.status === "ok" },
   { path: "/api/subscriptions/plans", status: 200, json: (body) => Array.isArray(body.plans) && body.plans.every((plan) => plan.code && plan.currency && plan.price !== undefined) },
   { path: "/api/profile/me", status: 401, json: (body) => body.success === false },
+  { path: "/api/discover", status: 401, json: (body) => body.success === false },
+  { path: "/api/interests/received", status: 401, json: (body) => body.success === false },
+  { path: "/api/admin/stats", status: 401, json: (body) => body.success === false },
 ];
 
 for (const check of checks) {
