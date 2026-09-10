@@ -136,7 +136,7 @@ export default function ProfilePage() {
 
   return <section className="mx-auto max-w-6xl px-6 py-12">
     <div className="mb-8 flex flex-wrap items-end justify-between gap-5">
-      <div><Link to="/account" className="text-sm text-burgundy underline">← Back to your space</Link><p className="mt-6 text-xs uppercase tracking-[0.3em] text-burgundy/65">Profile editor</p><h1 className="mt-3 font-display text-4xl sm:text-5xl">Tell people what makes you, you.</h1><p className="mt-3 max-w-2xl text-charcoal/65">Build a thoughtful introduction with your interests, intentions, preferences, and the photos you want people to see.</p></div>
+      <div><Link to="/app/discover" className="text-sm text-burgundy underline">← Back to finding people</Link><p className="mt-6 text-xs uppercase tracking-[0.3em] text-burgundy/65">Profile editor</p><h1 className="mt-3 font-display text-4xl sm:text-5xl">Tell people what makes you, you.</h1><p className="mt-3 max-w-2xl text-charcoal/65">Build a thoughtful introduction with your interests, intentions, preferences, and the photos you want people to see.</p></div>
       <div className="min-w-44 rounded-2xl border border-burgundy/10 bg-white/70 p-4"><div className="flex items-center justify-between"><span className="text-xs uppercase tracking-[0.2em] text-burgundy/65">Profile strength</span><span className="font-display text-2xl text-burgundy">{completion}%</span></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-charcoal/10"><div className="h-full rounded-full bg-gold" style={{ width: `${completion}%` }} /></div><p className="mt-2 text-xs text-charcoal/55">{profile.visibility === "VISIBLE" ? "Visible to members" : "Private until complete"}</p></div>
     </div>
 
