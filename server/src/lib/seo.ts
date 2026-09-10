@@ -18,7 +18,7 @@ const pages: Record<string, { title: string; description: string }> = {
   "/cookies": { title: "Cookie Policy | Sshh... Koi Hai?", description: "Learn how essential and optional cookies may support the Sshh... Koi Hai? experience." },
   "/contact": { title: "Contact | Sshh... Koi Hai?", description: "Contact the Sshh... Koi Hai? team for support and general questions." },
 };
-const privatePrefixes = ["/admin", "/account", "/settings", "/discover", "/likes", "/matches", "/messages", "/notifications", "/profile", "/checkout", "/payment", "/login", "/register", "/forgot-password", "/reset-password", "/verify-email"];
+const privatePrefixes = ["/admin", "/account", "/settings", "/app", "/discover", "/likes", "/matches", "/messages", "/notifications", "/profile", "/checkout", "/payment", "/login", "/register", "/forgot-password", "/reset-password", "/verify-email"];
 const escapeHtml = (value: string) => value.replace(/[&<>\"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
 const isPrivate = (pathname: string) => privatePrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 
