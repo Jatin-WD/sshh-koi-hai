@@ -40,7 +40,15 @@ export function errorHandler(
   return sendError(res, 500, "Unexpected server error", "INTERNAL_SERVER_ERROR");
 }
 
-function isDatabaseConnectionError(error: unknown) {
+function isDatabaseConnectionError(error: unknown): boolean {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    // Prisma emits these codes when the connector cannot establish or keep a
+    // database connection. Treat them as infrastructure failures rather than
+    // leaking a generic 500 to auth, plans, or member screens.
+    if (["P1000", "P1001", "P1002", "P1008", "P1017"].includes(error.code)) return true;
+  }
+  if (error instanceof Prisma.PrismaClientUnknownRequestError) return /tls|ssl|connection|timeout|socket|connector/i.test(error.message);
   if (!(error instanceof Error)) return false;
-  return /tls|ssl|econnreset|econnrefused|timed out|timeout|connection.*closed|server has gone away|can't reach database server/i.test(error.message);
+  const cause = "cause" in error ? error.cause : undefined;
+  return /tls|ssl|econnreset|econnrefused|timed out|timeout|connection.*closed|server has gone away|can't reach database server|connector error|transaction.*error/i.test(error.message) || (cause !== error && isDatabaseConnectionError(cause));
 }
