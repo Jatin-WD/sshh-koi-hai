@@ -61,7 +61,7 @@ async function authorizeConversation(userId: string, conversationId: string | un
   await assertMessagingMembership(userId);
   if (!conversationId) throw new AppError("Conversation is required", 400, "CONVERSATION_REQUIRED");
   const conversation = await prisma.conversation.findUnique({ where: { id: conversationId }, include: { match: true, members: { select: { id: true } } } });
-  if (!conversation || !conversation.members.some((member) => member.id === userId)) throw new AppError("Conversation not found", 404, "CONVERSATION_NOT_FOUND");
+  if (!conversation || conversation.archivedAt || !conversation.members.some((member) => member.id === userId)) throw new AppError("Conversation not found", 404, "CONVERSATION_NOT_FOUND");
   const otherUserId = conversation.members.find((member) => member.id !== userId)?.id; if (!otherUserId) throw new AppError("Conversation is invalid", 403, "INVALID_CONVERSATION");
   await assertChatEligibility(userId, otherUserId); return conversation;
 }

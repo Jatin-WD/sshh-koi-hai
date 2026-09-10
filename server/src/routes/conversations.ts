@@ -13,7 +13,7 @@ const paging = z.object({ page: z.coerce.number().int().min(1).default(1), pageS
 router.get("/", requireMessagingMembership, async (req, res, next) => {
   try {
     const userId = req.authUser!.id;
-    const conversations = await prisma.conversation.findMany({ where: { members: { some: { id: userId } } }, include: { match: true, members: { include: { profile: true } }, messages: { orderBy: { createdAt: "desc" }, take: 1 } }, orderBy: { lastMessageAt: "desc" } });
+    const conversations = await prisma.conversation.findMany({ where: { archivedAt: null, members: { some: { id: userId } } }, include: { match: true, members: { include: { profile: true } }, messages: { orderBy: { createdAt: "desc" }, take: 1 } }, orderBy: { lastMessageAt: "desc" } });
     const visible = [];
     for (const conversation of conversations) {
       const other = conversation.members.find((member) => member.id !== userId);
@@ -31,7 +31,7 @@ router.get("/:conversationId/messages", requireMessagingMembership, async (req, 
     const conversationId = req.params.conversationId;
     if (!conversationId) throw new AppError("Conversation not found", 404, "CONVERSATION_NOT_FOUND");
     const conversation = await prisma.conversation.findUnique({ where: { id: conversationId }, include: { members: { select: { id: true } } } });
-    if (!conversation || !conversation.members.some((member) => member.id === req.authUser!.id)) throw new AppError("Conversation not found", 404, "CONVERSATION_NOT_FOUND");
+    if (!conversation || conversation.archivedAt || !conversation.members.some((member) => member.id === req.authUser!.id)) throw new AppError("Conversation not found", 404, "CONVERSATION_NOT_FOUND");
     const otherId = conversation.members.find((member) => member.id !== req.authUser!.id)?.id;
     if (!otherId) throw new AppError("Conversation is invalid", 403, "INVALID_CONVERSATION");
     await assertChatEligibility(req.authUser!.id, otherId);
