@@ -15,7 +15,7 @@ router.get("/", requireDiscoveryAccess, async (req, res, next) => {
     const input = filterSchema.parse(req.query); const userId = req.authUser!.id;
     const blocks = await prisma.block.findMany({ where: { OR: [{ blockerId: userId }, { blockedUserId: userId }] }, select: { blockerId: true, blockedUserId: true } });
     const excludedIds = new Set(blocks.flatMap((block) => [block.blockerId, block.blockedUserId])); excludedIds.add(userId);
-    const profileWhere: Prisma.ProfileWhereInput = { visibility: "VISIBLE", ...(input.online ? { onlineStatus: true, showOnlineStatus: true } : {}) };
+    const profileWhere: Prisma.ProfileWhereInput = { visibility: "VISIBLE", ...(input.online ? { onlineStatus: true, showOnlineStatus: true, lastSeenAt: { gte: new Date(Date.now() - 5 * 60_000) } } : {}) };
     if (input.interests) { const interests = input.interests.split(",").map((interest) => interest.trim()).filter(Boolean); if (interests.length) profileWhere.interests = { hasSome: interests }; }
     const where: Prisma.UserWhereInput = { id: { notIn: [...excludedIds] }, status: "ACTIVE", isEmailVerified: true, profile: { is: profileWhere } };
     if (input.gender) where.gender = input.gender; if (input.city) where.city = { contains: input.city, mode: "insensitive" }; if (input.maritalStatus) where.maritalStatus = input.maritalStatus; if (input.lookingFor) where.lookingFor = input.lookingFor;

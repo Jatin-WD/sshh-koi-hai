@@ -6,6 +6,7 @@ import { env } from "../config/env.js";
 import { AppError } from "../lib/appError.js";
 import { withDbStatementTimeout } from "../lib/dbTimeout.js";
 import { logger } from "../lib/logger.js";
+import { markOnline } from "../lib/presence.js";
 
 declare global { namespace Express { interface Request { authUser?: ReturnType<typeof publicUser>; } } }
 
@@ -19,6 +20,7 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
     const user = await withDbStatementTimeout((tx) => tx.user.findUnique({ where: { id: userId } }));
     if (!user || user.status === "SUSPENDED" || user.status === "BANNED" || user.status === "DELETED") throw new AppError("Account unavailable", 401, "ACCOUNT_UNAVAILABLE");
     req.authUser = publicUser(user);
+    markOnline(userId);
     next();
   } catch (error) {
     if (!(error instanceof AppError)) logger.error({ err: error, method: req.method, path: req.originalUrl }, "Authentication lookup failed");

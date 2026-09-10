@@ -9,6 +9,7 @@ import { sendSuccess } from "../lib/apiResponse.js";
 import { clearAuthCookies, createOpaqueToken, hashToken, publicUser, setAuthCookies } from "../lib/auth.js";
 import { sendAdminActivityEmail, sendPasswordResetEmail, sendVerificationEmail } from "../lib/mail.js";
 import { logger } from "../lib/logger.js";
+import { markOffline } from "../lib/presence.js";
 import { requireAuth } from "../middleware/auth.js";
 import { authRateLimit, perIpCircuitBreaker } from "../middleware/security.js";
 
@@ -72,7 +73,7 @@ router.post("/login", authRateLimit, async (req, res, next) => {
 });
 
 router.post("/logout", async (req, res, next) => {
-  try { const token = req.cookies?.sshh_refresh; if (token) await prisma.authToken.updateMany({ where: { tokenHash: hashToken(token), type: "REFRESH_SESSION", consumedAt: null }, data: { consumedAt: new Date() } }); clearAuthCookies(res); return sendSuccess(res, { loggedOut: true }); } catch (error) { return next(error); }
+  try { const token = req.cookies?.sshh_refresh; if (token) { const session = await prisma.authToken.findFirst({ where: { tokenHash: hashToken(token), type: "REFRESH_SESSION", consumedAt: null }, select: { userId: true } }); await prisma.authToken.updateMany({ where: { tokenHash: hashToken(token), type: "REFRESH_SESSION", consumedAt: null }, data: { consumedAt: new Date() } }); if (session) markOffline(session.userId); } clearAuthCookies(res); return sendSuccess(res, { loggedOut: true }); } catch (error) { return next(error); }
 });
 
 router.get("/me", perIpCircuitBreaker("/api/auth/me"), requireAuth, (req, res) => {
