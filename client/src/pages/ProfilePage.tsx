@@ -140,7 +140,7 @@ export default function ProfilePage() {
       <div className="min-w-44 rounded-2xl border border-burgundy/10 bg-white/70 p-4"><div className="flex items-center justify-between"><span className="text-xs uppercase tracking-[0.2em] text-burgundy/65">Profile strength</span><span className="font-display text-2xl text-burgundy">{completion}%</span></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-charcoal/10"><div className="h-full rounded-full bg-gold" style={{ width: `${completion}%` }} /></div><p className="mt-2 text-xs text-charcoal/55">{profile.visibility === "VISIBLE" ? "Visible to members" : "Private until complete"}</p></div>
     </div>
 
-    {(error || notice) && <p className={`mb-6 rounded-2xl p-4 text-sm ${error ? "bg-red-50 text-red-800" : "bg-green-50 text-green-800"}`}>{error || notice}</p>}
+    {(error || notice) && <p role={error ? "alert" : "status"} aria-live={error ? "assertive" : "polite"} className={`mb-6 rounded-2xl p-4 text-sm ${error ? "bg-red-50 text-red-800" : "bg-green-50 text-green-800"}`}>{error || notice}</p>}
 
     <div className="grid gap-8 lg:grid-cols-[1.35fr_.65fr]">
       <form key={formVersion} onSubmit={save} className="space-y-6">
