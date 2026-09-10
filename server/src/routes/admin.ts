@@ -42,6 +42,21 @@ router.get("/stats", async (_req, res, next) => {
   } catch (error) { return next(error); }
 });
 
+router.post("/demo-profiles/repair", async (_req, res, next) => {
+  try {
+    const demoUsers = await prisma.user.findMany({ where: { email: { endsWith: ".demo@example.test" } }, select: { id: true, email: true, profile: true } });
+    let repaired = 0;
+    for (const user of demoUsers) {
+      await prisma.user.update({ where: { id: user.id }, data: { status: "ACTIVE", isEmailVerified: true } });
+      if (user.profile) {
+        await prisma.profile.update({ where: { id: user.profile.id }, data: { visibility: "VISIBLE", bio: user.profile.bio ?? "Curious, easygoing, and here for a conversation that feels natural.", interests: user.profile.interests.length ? user.profile.interests : ["Conversation", "Music", "Travel"], occupation: user.profile.occupation ?? "Independent professional", education: user.profile.education ?? "Graduate", languages: user.profile.languages.length ? user.profile.languages : ["English", "Hindi"], relationshipIntent: user.profile.relationshipIntent ?? "A genuine connection at a comfortable pace", profileImageUrls: user.profile.profileImageUrls.length ? user.profile.profileImageUrls : ["/og-image.png"], allowInterests: true } });
+        repaired++;
+      }
+    }
+    return sendSuccess(res, { found: demoUsers.length, repaired });
+  } catch (error) { return next(error); }
+});
+
 router.get("/users", async (req, res, next) => {
   try {
     const query = pageSchema.extend({ search: z.string().trim().optional(), status: z.enum(["PENDING", "ACTIVE", "SUSPENDED", "BANNED", "DELETED"]).optional(), gender: z.enum(["MALE", "FEMALE", "NON_BINARY", "OTHER", "PREFER_NOT_TO_SAY"]).optional(), verified: z.coerce.boolean().optional() }).parse(req.query);
