@@ -24,11 +24,18 @@ router.get("/", requireDiscoveryAccess, async (req, res, next) => {
     const current = await prisma.user.findUniqueOrThrow({ where: { id: userId }, include: { profile: true } }); if (!current.profile) throw new Error("Profile not found");
     const candidates = await prisma.user.findMany({ where, include: { profile: true }, orderBy: { createdAt: "desc" } });
     const candidatesWithProfile = candidates.filter((candidate): candidate is typeof candidate & { profile: NonNullable<typeof candidate.profile> } => Boolean(candidate.profile));
-    const eligible = candidatesWithProfile.filter((candidate) => profileCompletion(candidate, candidate.profile) >= 60);
+    const currentAge = getAge(current.dateOfBirth);
+    const eligible = candidatesWithProfile.filter((candidate) => profileCompletion(candidate, candidate.profile) >= 60 && acceptsCurrentMember(candidate, current.gender, currentAge));
     const scored = sortRecommendations({ ...current, ...current.profile }, eligible); const start = (input.page - 1) * input.pageSize; const page = scored.slice(start, start + input.pageSize);
     return sendSuccess(res, { profiles: page.map(({ candidate, score }) => ({ ...publicProfile(candidate, candidate.profile), recommendationScore: score })), pagination: { page: input.page, pageSize: input.pageSize, total: scored.length, hasMore: start + input.pageSize < scored.length } });
   } catch (error) { return next(error); }
 });
 
 function dateForAge(age: number) { const date = new Date(); date.setFullYear(date.getFullYear() - age); return date; }
+function acceptsCurrentMember(candidate: { gender: string; profile: { genderPreference: string | null; agePreferenceMin: number | null; agePreferenceMax: number | null } }, currentGender: string, currentAge: number) {
+  const { genderPreference, agePreferenceMin, agePreferenceMax } = candidate.profile;
+  const acceptsGender = !genderPreference || genderPreference === "PREFER_NOT_TO_SAY" || genderPreference === currentGender;
+  const acceptsAge = (!agePreferenceMin || currentAge >= agePreferenceMin) && (!agePreferenceMax || currentAge <= agePreferenceMax);
+  return acceptsGender && acceptsAge;
+}
 export default router;
