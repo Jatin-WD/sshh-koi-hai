@@ -1,6 +1,21 @@
 import { clientEnv } from "../env";
 
-export async function api<T>(path: string, options: RequestInit = {}) {
+let refreshPromise: Promise<void> | null = null;
+
+async function refreshSession() {
+  if (!refreshPromise) {
+    refreshPromise = fetch(`${clientEnv.VITE_API_BASE_URL}/auth/refresh`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" } })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Session refresh failed");
+      })
+      .finally(() => { refreshPromise = null; });
+  }
+  return refreshPromise;
+}
+
+const skipRefresh = ["/auth/login", "/auth/register", "/auth/refresh", "/auth/logout", "/auth/forgot-password", "/auth/reset-password"];
+
+export async function api<T>(path: string, options: RequestInit = {}, canRefresh = true): Promise<T> {
   const timeoutMs = Number(clientEnv.VITE_API_TIMEOUT_MS ?? 15000);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(new Error(`Request timed out after ${timeoutMs}ms`)), timeoutMs);
@@ -16,13 +31,21 @@ export async function api<T>(path: string, options: RequestInit = {}) {
 
   try {
     const response = await fetch(`${clientEnv.VITE_API_BASE_URL}${path}`, { ...options, signal: controller.signal, credentials: "include", headers: { "Content-Type": "application/json", ...options.headers } });
-  let payload: { success: boolean; data?: T; error?: { message?: string } } | null = null;
-  try {
-    payload = await response.json() as { success: boolean; data?: T; error?: { message?: string } };
-  } catch {
-    payload = null;
-  }
-  if (!response.ok || !payload?.success) throw new Error(payload?.error?.message ?? `Request failed with status ${response.status}`);
+    let payload: { success: boolean; data?: T; error?: { message?: string } } | null = null;
+    try {
+      payload = await response.json() as { success: boolean; data?: T; error?: { message?: string } };
+    } catch {
+      payload = null;
+    }
+    if (response.status === 401 && canRefresh && !skipRefresh.some((route) => path.startsWith(route))) {
+      try {
+        await refreshSession();
+        return api<T>(path, options, false);
+      } catch {
+        // Preserve the original API error below when the refresh cookie is also invalid.
+      }
+    }
+    if (!response.ok || !payload?.success) throw new Error(payload?.error?.message ?? `Request failed with status ${response.status}`);
     return payload.data as T;
   } finally {
     clearTimeout(timeout);
