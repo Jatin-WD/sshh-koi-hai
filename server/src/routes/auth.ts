@@ -19,6 +19,7 @@ const registerSchema = z.object({
   displayName: z.string().trim().min(2).max(80), email: emailSchema, password: z.string().min(10).max(128), confirmPassword: z.string(),
   dateOfBirth: z.coerce.date(), gender: z.enum(["MALE", "FEMALE", "NON_BINARY", "OTHER", "PREFER_NOT_TO_SAY"]), city: z.string().trim().min(2).max(100),
   maritalStatus: z.enum(["SINGLE", "MARRIED", "DIVORCED", "SEPARATED", "WIDOWED", "PREFER_NOT_TO_SAY"]), lookingFor: z.enum(["CHAT", "DATING", "RELATIONSHIP", "MARRIAGE", "FRIENDSHIP"]),
+  genderPreference: z.enum(["MALE", "FEMALE", "NON_BINARY", "OTHER", "PREFER_NOT_TO_SAY"]).optional(),
   acceptedTerms: z.literal(true), confirmedAdult: z.literal(true),
 }).superRefine((data, ctx) => {
   if (data.password !== data.confirmPassword) ctx.addIssue({ code: "custom", path: ["confirmPassword"], message: "Passwords do not match" });
@@ -32,7 +33,7 @@ router.post("/register", authRateLimit, async (req, res, next) => {
     const existing = await prisma.user.findUnique({ where: { email: input.email } });
     if (existing) throw new AppError("An account with this email already exists. Please sign in or use another email.", 400, "REGISTRATION_EMAIL_EXISTS");
     const passwordHash = await bcrypt.hash(input.password, 12);
-    const user = await prisma.user.create({ data: { email: input.email, passwordHash, displayName: input.displayName, dateOfBirth: input.dateOfBirth, gender: input.gender, city: input.city, maritalStatus: input.maritalStatus, lookingFor: input.lookingFor, termsVersion: CURRENT_TERMS_VERSION, acceptedAt: new Date(), profile: { create: {} } } });
+    const user = await prisma.user.create({ data: { email: input.email, passwordHash, displayName: input.displayName, dateOfBirth: input.dateOfBirth, gender: input.gender, city: input.city, maritalStatus: input.maritalStatus, lookingFor: input.lookingFor, termsVersion: CURRENT_TERMS_VERSION, acceptedAt: new Date(), profile: { create: input.genderPreference ? { genderPreference: input.genderPreference } : {} } } });
     void sendAdminActivityEmail("New registration", { userId: user.id, name: user.displayName, email: user.email, city: user.city, registeredAt: user.createdAt.toISOString() });
     const token = await createAuthToken(user.id, "EMAIL_VERIFICATION", env.EMAIL_VERIFICATION_TTL_HOURS * 3600000);
     let verificationEmailSent = true;
