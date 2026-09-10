@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { prisma } from "../db/prisma.js";
 import { logger } from "../lib/logger.js";
+import { withDbStatementTimeout } from "../lib/dbTimeout.js";
 
 const healthRouter = Router();
 
@@ -10,7 +10,7 @@ healthRouter.get("/health", (_req, res) => {
 
 healthRouter.get("/health/db", async (_req, res) => {
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    await withDbStatementTimeout((tx) => tx.$queryRaw`SELECT 1`, undefined, 3);
     return res.status(200).set("Cache-Control", "no-store").json({ success: true, status: "ok", database: "connected" });
   } catch (error) {
     const message = error instanceof Error ? error.message.toLowerCase() : "";
