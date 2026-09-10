@@ -45,6 +45,7 @@ const envSchema = z.object({
   ADMIN_ACTIVITY_EMAIL: z.string().email().default("contact.sshhkoihai@gmail.com"),
   // Optional in development; required for production admin access.
   ADMIN_LOGIN_EMAIL: z.string().email().optional(),
+  DATABASE_SSL_ACCEPT_INVALID_CERTS: z.enum(["true", "false"]).default("false").transform((value) => value === "true"),
   RAZORPAY_KEY_ID: z.string().optional(),
   RAZORPAY_KEY_SECRET: z.string().optional(),
   RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
@@ -65,6 +66,7 @@ function normalizeDatabaseUrl(url: string) {
   // back to the platform's incompatible default TLS behavior.
   if (env.NODE_ENV === "production" || normalized.hostname.endsWith("supabase.com")) normalized.searchParams.set("sslmode", "require");
   if (normalized.hostname.endsWith("supabase.com")) normalized.searchParams.set("connection_limit", "5");
+  if (env.DATABASE_SSL_ACCEPT_INVALID_CERTS) normalized.searchParams.set("sslaccept", "accept_invalid_certs");
   return normalized.toString();
 }
 
