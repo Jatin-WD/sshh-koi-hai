@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../db/prisma.js";
+import { logger } from "../lib/logger.js";
 
 const healthRouter = Router();
 
@@ -11,8 +12,11 @@ healthRouter.get("/health/db", async (_req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
     return res.status(200).set("Cache-Control", "no-store").json({ success: true, status: "ok", database: "connected" });
-  } catch {
-    return res.status(503).set("Cache-Control", "no-store").json({ success: false, status: "degraded", database: "unavailable" });
+  } catch (error) {
+    const message = error instanceof Error ? error.message.toLowerCase() : "";
+    const reason = message.includes("max clients") || message.includes("emaxconn") ? "connection_limit" : message.includes("password authentication") || message.includes("authentication failed") ? "credentials" : message.includes("tls") || message.includes("ssl") ? "tls" : message.includes("reach") || message.includes("timeout") ? "network" : "database_error";
+    logger.error({ err: error, reason }, "Database health check failed");
+    return res.status(503).set("Cache-Control", "no-store").json({ success: false, status: "degraded", database: "unavailable", reason });
   }
 });
 
