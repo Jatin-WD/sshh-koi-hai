@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import NotificationBell from "./NotificationBell";
 import Brand from "./Brand";
 
-const links = [{ to: "/about", label: "About" }, { to: "/how-it-works", label: "How it works" }, { to: "/membership", label: "Membership" }, { to: "/safety", label: "Safety" }];
+const links = [{ to: "/how-it-works", label: "How it works" }, { to: "/membership", label: "Membership" }, { to: "/safety", label: "Safety" }, { to: "/privacy", label: "Privacy" }];
 
 export default function PublicLayout() {
   const [open, setOpen] = useState(false);
