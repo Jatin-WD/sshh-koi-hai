@@ -7,8 +7,8 @@ export default function SubscriptionGuard() {
   const { user, loading: authLoading } = useAuth();
   const location = useLocation();
   const [allowed, setAllowed] = useState<boolean | null>(null);
-  useEffect(() => { if (location.pathname === "/discover") { setAllowed(true); return; } if (user) api<{ subscription: unknown; membershipRequired: boolean }>("/subscriptions/current").then((data) => setAllowed(!data.membershipRequired || Boolean(data.subscription))).catch(() => setAllowed(false)); }, [user, location.pathname]);
-  if (authLoading || (user && allowed === null)) return <div className="p-10 text-center text-charcoal/60">{location.pathname === "/discover" ? "Loading profiles..." : "Checking membership..."}</div>;
+  useEffect(() => { if (["/discover", "/app/discover"].includes(location.pathname)) { setAllowed(true); return; } if (user) api<{ subscription: unknown; membershipRequired: boolean }>("/subscriptions/current").then((data) => setAllowed(!data.membershipRequired || Boolean(data.subscription))).catch(() => setAllowed(false)); }, [user, location.pathname]);
+  if (authLoading || (user && allowed === null)) return <div className="p-10 text-center text-charcoal/60">{["/discover", "/app/discover"].includes(location.pathname) ? "Loading profiles..." : "Checking membership..."}</div>;
   if (!user) return <Navigate to="/login" replace />;
   return allowed ? <Outlet /> : <Navigate to={location.pathname.startsWith("/messages") ? "/membership?reason=chat" : "/membership"} replace />;
 }
