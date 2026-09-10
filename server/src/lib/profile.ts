@@ -13,6 +13,10 @@ export function profileCompletion(user: Pick<User, "displayName" | "gender" | "c
   return Math.round((checks.filter(Boolean).length / checks.length) * 100);
 }
 
+// Registration supplies the identity and preference fields needed to start
+// discovering. Keep the stronger 60% threshold for profiles shown to others.
+export const minimumDiscoveryCompletion = 45;
+
 export function publicProfile(user: Pick<User, "id" | "displayName" | "dateOfBirth" | "gender" | "city" | "maritalStatus" | "lookingFor">, profile: Profile) {
   return { id: user.id, displayName: user.displayName, age: getAge(user.dateOfBirth), gender: user.gender, city: profile.showCity ? user.city : null, lookingFor: user.lookingFor, bio: profile.bio, interests: profile.interests, profileImages: profile.profileImageUrls, primaryImageIndex: profile.primaryImageIndex, occupation: profile.occupation, education: profile.education, languages: profile.languages, relationshipIntent: profile.relationshipIntent, visibility: profile.visibility, canReceiveInterest: profile.allowInterests, ...(profile.showOnlineStatus ? { onlineStatus: profile.onlineStatus } : {}) };
 }

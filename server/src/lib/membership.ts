@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import { prisma } from "../db/prisma.js";
 import { AppError } from "./appError.js";
 import { requireAuth } from "../middleware/auth.js";
-import { profileCompletion } from "./profile.js";
+import { minimumDiscoveryCompletion, profileCompletion } from "./profile.js";
 import { ensureSubscriptionNotification } from "./notifications.js";
 import { withDbStatementTimeout } from "./dbTimeout.js";
 
@@ -58,7 +58,7 @@ export function requireDiscoveryAccess(req: Request, res: Response, next: NextFu
     try {
       if (!req.authUser?.isEmailVerified) throw new AppError("Email verification is required", 403, "EMAIL_VERIFICATION_REQUIRED");
       const user = await prisma.user.findUnique({ where: { id: req.authUser.id }, include: { profile: true } });
-      if (!user?.profile || profileCompletion(user, user.profile) < 60) throw new AppError("Complete your profile before discovering members", 403, "PROFILE_INCOMPLETE");
+      if (!user?.profile || profileCompletion(user, user.profile) < minimumDiscoveryCompletion) throw new AppError("Complete the essential parts of your profile before discovering members", 403, "PROFILE_INCOMPLETE");
       next();
     } catch (discoveryError) { next(discoveryError); }
   });
