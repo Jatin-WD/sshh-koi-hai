@@ -1,5 +1,7 @@
 import { Router } from "express";
+import crypto from "node:crypto";
 import { Prisma, UserRole } from "@prisma/client";
+import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "../db/prisma.js";
 import { requireAdmin } from "../middleware/admin.js";
@@ -44,6 +46,15 @@ router.get("/stats", async (_req, res, next) => {
 
 router.post("/demo-profiles/repair", async (_req, res, next) => {
   try {
+    const additions = [
+      { email: "isha.resort.demo@example.test", displayName: "Isha Kapoor", age: 29, city: "Goa", lookingFor: "DATING" as const, interests: ["Travel", "Swimming", "Cinema"], bio: "Drawn to sunny places, honest conversations, and people who make room for laughter.", occupation: "Brand strategist", education: "Marketing", languages: ["English", "Hindi"], relationshipIntent: "A warm, intentional connection", image: "/demo-profiles/isha-resort.png", onlineStatus: true },
+      { email: "anika.resort.demo@example.test", displayName: "Anika Rao", age: 30, city: "Mumbai", lookingFor: "RELATIONSHIP" as const, interests: ["Architecture", "Travel", "Books"], bio: "A calm optimist who loves thoughtful design, slow evenings, and conversations with depth.", occupation: "Architect", education: "Architecture", languages: ["English", "Hindi", "Marathi"], relationshipIntent: "A mature relationship built with care", image: "/demo-profiles/anika-resort.png", onlineStatus: false },
+    ];
+    for (const item of additions) {
+      const dateOfBirth = new Date(); dateOfBirth.setFullYear(dateOfBirth.getFullYear() - item.age);
+      const user = await prisma.user.upsert({ where: { email: item.email }, update: { displayName: item.displayName, city: item.city, lookingFor: item.lookingFor, isEmailVerified: true, status: "ACTIVE" }, create: { email: item.email, passwordHash: await bcrypt.hash(crypto.randomBytes(24).toString("hex"), 12), displayName: item.displayName, dateOfBirth, gender: "FEMALE", city: item.city, maritalStatus: "SINGLE", lookingFor: item.lookingFor, isEmailVerified: true, status: "ACTIVE", termsVersion: "2026-08-31", acceptedAt: new Date() }, select: { id: true } });
+      await prisma.profile.upsert({ where: { userId: user.id }, update: { bio: item.bio, profileImageUrls: [item.image], interests: item.interests, occupation: item.occupation, education: item.education, languages: item.languages, relationshipIntent: item.relationshipIntent, agePreferenceMin: 24, agePreferenceMax: 45, locationPreference: item.city, lookingFor: item.lookingFor, visibility: "VISIBLE", showOnlineStatus: true, onlineStatus: item.onlineStatus, allowInterests: true }, create: { userId: user.id, bio: item.bio, profileImageUrls: [item.image], interests: item.interests, occupation: item.occupation, education: item.education, languages: item.languages, relationshipIntent: item.relationshipIntent, agePreferenceMin: 24, agePreferenceMax: 45, locationPreference: item.city, lookingFor: item.lookingFor, visibility: "VISIBLE", showOnlineStatus: true, onlineStatus: item.onlineStatus, allowInterests: true } });
+    }
     const demoUsers = await prisma.user.findMany({ where: { email: { endsWith: ".demo@example.test" } }, select: { id: true, email: true, profile: true } });
     let repaired = 0;
     for (const user of demoUsers) {
