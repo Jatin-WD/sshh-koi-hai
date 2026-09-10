@@ -38,6 +38,7 @@ export default function ProfilePage() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [imageAction, setImageAction] = useState<number | null>(null);
   const [showMembershipPrompt, setShowMembershipPrompt] = useState(false);
   const [formVersion, setFormVersion] = useState(0);
 
@@ -112,13 +113,19 @@ export default function ProfilePage() {
   }
 
   async function removeImage(index: number) {
+    if (imageAction !== null) return;
+    setImageAction(index); setError("");
     try { const result = await api<{ profileImages: string[]; primaryImageIndex: number }>(`/profile/images/${index}`, { method: "DELETE" }); setProfile({ ...profile, profileImages: result.profileImages, primaryImageIndex: result.primaryImageIndex }); }
     catch (e) { setError(e instanceof Error ? e.message : "Unable to remove image"); }
+    finally { setImageAction(null); }
   }
 
   async function makePrimary(index: number) {
+    if (imageAction !== null || profile.primaryImageIndex === index) return;
+    setImageAction(index); setError("");
     try { await api(`/profile/images/${index}/primary`, { method: "PATCH" }); setProfile({ ...profile, primaryImageIndex: index }); }
     catch (e) { setError(e instanceof Error ? e.message : "Unable to set primary image"); }
+    finally { setImageAction(null); }
   }
 
   async function deleteAccount() {
