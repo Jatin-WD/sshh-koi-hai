@@ -2,8 +2,9 @@ import "dotenv/config";
 import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
+import { databaseUrl } from "../src/config/env.js";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ datasources: { db: { url: databaseUrl } } });
 const TERMS_VERSION = "2026-08-31";
 const demoPassword = process.env.DEMO_INITIAL_PASSWORD || `Demo-${cryptoRandom()}-Only!`;
 
@@ -73,12 +74,6 @@ async function main() {
   if (!adminEmail || !adminPassword) throw new Error("ADMIN_EMAIL and ADMIN_INITIAL_PASSWORD are required to run the seed");
   if (adminPassword.length < 12) throw new Error("ADMIN_INITIAL_PASSWORD must be at least 12 characters");
 
-  const [monthly, quarterly, yearly] = await Promise.all([
-    upsertPlan({ name: "Monthly", code: "monthly", durationMonths: 1, price: 499, featured: false, sortOrder: 1 }),
-    upsertPlan({ name: "Quarterly", code: "quarterly", durationMonths: 3, price: 999, featured: true, sortOrder: 2 }),
-    upsertPlan({ name: "Yearly", code: "yearly", durationMonths: 12, price: 2499, featured: false, sortOrder: 3 }),
-  ]);
-
   const passwordHash = await bcrypt.hash(demoPassword, 12);
   const users = new Map<string, { id: string }>();
   for (const item of demoUsers) {
@@ -93,6 +88,17 @@ async function main() {
     await prisma.profile.upsert({ where: { userId: user.id }, update: { bio: item.bio, profileImageUrls: [profileImageUrl], interests: item.interests, occupation: item.occupation, education: item.education, languages: item.languages, relationshipIntent: item.relationshipIntent, genderPreference: item.key === "aanya" ? "MALE" : null, agePreferenceMin: 24, agePreferenceMax: 45, locationPreference: item.city, lookingFor: item.lookingFor, visibility: "VISIBLE", showOnlineStatus: true, onlineStatus: item.onlineStatus, allowInterests: true }, create: { userId: user.id, profileImageUrls: [profileImageUrl], bio: item.bio, interests: item.interests, occupation: item.occupation, education: item.education, languages: item.languages, relationshipIntent: item.relationshipIntent, genderPreference: item.key === "aanya" ? "MALE" : null, agePreferenceMin: 24, agePreferenceMax: 45, locationPreference: item.city, lookingFor: item.lookingFor, visibility: "VISIBLE", showOnlineStatus: true, onlineStatus: item.onlineStatus, allowInterests: true } });
     await prisma.notificationPreference.upsert({ where: { userId: user.id }, update: {}, create: { userId: user.id } });
   }
+
+  if (process.env.SEED_ONLY_DEMO_PROFILES === "true") {
+    console.log(`Upserted ${demoUsers.length} demo profiles only.`);
+    return;
+  }
+
+  const [monthly, quarterly, yearly] = await Promise.all([
+    upsertPlan({ name: "Monthly", code: "monthly", durationMonths: 1, price: 499, featured: false, sortOrder: 1 }),
+    upsertPlan({ name: "Quarterly", code: "quarterly", durationMonths: 3, price: 999, featured: true, sortOrder: 2 }),
+    upsertPlan({ name: "Yearly", code: "yearly", durationMonths: 12, price: 2499, featured: false, sortOrder: 3 }),
+  ]);
 
   const adminHash = await bcrypt.hash(adminPassword, 12);
   await prisma.user.upsert({ where: { email: adminEmail }, update: { role: "ADMIN", isEmailVerified: true, status: "ACTIVE", termsVersion: TERMS_VERSION, acceptedAt: new Date() }, create: { email: adminEmail, passwordHash: adminHash, displayName: "Site Administrator", dateOfBirth: dob(35, 1, 1), gender: "PREFER_NOT_TO_SAY", isEmailVerified: true, role: "ADMIN", status: "ACTIVE", termsVersion: TERMS_VERSION, acceptedAt: new Date() } });
