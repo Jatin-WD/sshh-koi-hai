@@ -1,4 +1,6 @@
 import dotenv from "dotenv";
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { z } from "zod";
 
@@ -46,6 +48,7 @@ const envSchema = z.object({
   // Optional in development; required for production admin access.
   ADMIN_LOGIN_EMAIL: z.string().email().optional(),
   DATABASE_SSL_ACCEPT_INVALID_CERTS: z.enum(["true", "false"]).default("false").transform((value) => value === "true"),
+  DATABASE_SSL_CA_BASE64: z.string().min(20).optional(),
   RAZORPAY_KEY_ID: z.string().optional(),
   RAZORPAY_KEY_SECRET: z.string().optional(),
   RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
@@ -65,7 +68,15 @@ function normalizeDatabaseUrl(url: string) {
   // prevents a deployment env without an explicit query string from falling
   // back to the platform's incompatible default TLS behavior.
   if (env.NODE_ENV === "production" || normalized.hostname.endsWith("supabase.com")) normalized.searchParams.set("sslmode", "require");
-  if (normalized.hostname.endsWith("supabase.com")) normalized.searchParams.set("connection_limit", "5");
+  if (normalized.hostname.endsWith("supabase.com")) {
+    normalized.searchParams.set("connection_limit", "5");
+    if (env.DATABASE_SSL_CA_BASE64) {
+      const caPath = path.join(os.tmpdir(), "sshh-supabase-prod-ca.crt");
+      fs.writeFileSync(caPath, Buffer.from(env.DATABASE_SSL_CA_BASE64, "base64"), { mode: 0o600 });
+      normalized.searchParams.set("sslmode", "verify-full");
+      normalized.searchParams.set("sslrootcert", caPath);
+    }
+  }
   if (env.DATABASE_SSL_ACCEPT_INVALID_CERTS) normalized.searchParams.set("sslaccept", "accept_invalid_certs");
   return normalized.toString();
 }
