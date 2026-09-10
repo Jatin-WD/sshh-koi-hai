@@ -75,7 +75,10 @@ router.get("/current", requireAuth, async (req, res, next) => {
   try {
     const subscription = req.authUser ? await getCurrentSubscription(req.authUser.id) : null;
     const membershipRequired = req.authUser ? await membershipIsRequired(req.authUser.id) : true;
-    return sendSuccess(res, { membershipRequired, subscription: subscription ? { ...subscription, plan: { ...subscription.plan, price: subscription.plan.price.toString() } } : null });
+    const latestSubscription = req.authUser ? await withDbStatementTimeout((tx) => tx.subscription.findFirst({ where: { userId: req.authUser!.id }, include: { plan: true }, orderBy: { updatedAt: "desc" } })) : null;
+    const serializeSubscription = (value: typeof subscription) => value ? { ...value, plan: { ...value.plan, price: value.plan.price.toString() } } : null;
+    const status = subscription ? "ACTIVE" : latestSubscription?.status ?? "NONE";
+    return sendSuccess(res, { membershipRequired, status, subscription: serializeSubscription(subscription), latestSubscription: serializeSubscription(latestSubscription) });
   } catch (error) { return next(error); }
 });
 
