@@ -9,6 +9,20 @@ server.requestTimeout = env.REQUEST_TIMEOUT_MS;
 server.headersTimeout = env.REQUEST_TIMEOUT_MS + 5000;
 server.keepAliveTimeout = 5000;
 const io = attachSocketServer(server);
+async function warmDatabase() {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      await prisma.$connect();
+      logger.info({ attempt }, "Database connection ready");
+      return;
+    } catch (error) {
+      logger.warn({ err: error, attempt }, "Database warm-up failed; retrying");
+      if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
+    }
+  }
+  logger.error("Database warm-up exhausted; Prisma will reconnect on demand");
+}
+void warmDatabase();
 server.listen(env.PORT, "0.0.0.0", () => {
   logger.info({ port: env.PORT }, "API listening");
 });
