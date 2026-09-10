@@ -1,5 +1,5 @@
 (async () => {
-const baseUrl = (process.argv[2] || process.env.SMOKE_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
+const baseUrl = (process.argv[2] || process.env.SMOKE_BASE_URL || "http://localhost:4000").replace(/\/$/, "");
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function fetchWithRetry(url) {
   for (let attempt = 0; attempt < 3; attempt += 1) {

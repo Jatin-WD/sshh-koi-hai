@@ -30,8 +30,10 @@ function serializePlans(plans: Awaited<ReturnType<typeof fetchPlansFromDb>>) {
 }
 
 async function fetchPlansFromDb() {
-  const plans = await withDbStatementTimeout((tx) =>
-    tx.subscriptionPlan.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
+  const plans = await withDbStatementTimeout(
+    (tx) => tx.subscriptionPlan.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
+    undefined,
+    3,
   );
   return plans;
 }
