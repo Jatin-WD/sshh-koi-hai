@@ -7,6 +7,9 @@ const checks = [
   { path: "/safety", status: 200, html: true },
   { path: "/privacy", status: 200, html: true },
   { path: "/membership", status: 200, html: true },
+  { path: "/app/discover", status: 200, html: true, contains: 'name="robots" content="noindex,nofollow"' },
+  { path: "/discover", status: 200, html: true, contains: 'name="robots" content="noindex,nofollow"' },
+  { path: "/messages", status: 200, html: true, contains: 'name="robots" content="noindex,nofollow"' },
   { path: "/robots.txt", status: 200, html: true },
   { path: "/api/health", status: 200, json: (body) => body.success === true && body.status === "ok" },
   { path: "/api/subscriptions/plans", status: 200, json: (body) => Array.isArray(body.plans) && body.plans.every((plan) => plan.code && plan.currency && plan.price !== undefined) },
@@ -20,6 +23,7 @@ for (const check of checks) {
   try { body = JSON.parse(raw); } catch { /* HTML/text response expected. */ }
   if (response.status !== check.status) throw new Error(`${check.path}: expected ${check.status}, received ${response.status}`);
   if (check.html && !raw.trim()) throw new Error(`${check.path}: empty response`);
+  if (check.contains && !raw.includes(check.contains)) throw new Error(`${check.path}: expected response marker is missing`);
   if (check.json && !check.json(body?.data ?? body)) throw new Error(`${check.path}: unexpected response shape`);
   console.log(`PASS ${check.path} (${response.status})`);
 }
