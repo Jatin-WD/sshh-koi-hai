@@ -57,7 +57,10 @@ export async function api<T>(path: string, options: RequestInit = {}, canRefresh
         // Preserve the original API error below when the refresh cookie is also invalid.
       }
     }
-    if (!response.ok || !payload?.success) throw new ApiError(payload?.error?.message ?? `Request failed with status ${response.status}`, response.status, payload?.error?.code);
+    if (!response.ok || !payload?.success) {
+      const unavailable = response.status === 503 || payload?.error?.code === "DATABASE_UNAVAILABLE";
+      throw new ApiError(unavailable ? "The private space is temporarily unavailable. Please try again in a moment." : payload?.error?.message ?? `Request failed with status ${response.status}`, response.status, payload?.error?.code);
+    }
     return payload.data as T;
   } finally {
     clearTimeout(timeout);
