@@ -1,5 +1,14 @@
 (async () => {
 const baseUrl = (process.argv[2] || process.env.SMOKE_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+async function fetchWithRetry(url) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const response = await fetch(url, { redirect: "manual" });
+    if (![502, 503, 504].includes(response.status) || attempt === 2) return response;
+    await sleep(1000 * (attempt + 1));
+  }
+  throw new Error("Request retry limit reached");
+}
 
 const checks = [
   { path: "/", status: 200, html: true },
@@ -23,7 +32,7 @@ const checks = [
 ];
 
 for (const check of checks) {
-  const response = await fetch(`${baseUrl}${check.path}`, { redirect: "manual" });
+  const response = await fetchWithRetry(`${baseUrl}${check.path}`);
   const raw = await response.text();
   let body = null;
   try { body = JSON.parse(raw); } catch { /* HTML/text response expected. */ }
