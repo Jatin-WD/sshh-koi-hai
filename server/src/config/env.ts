@@ -18,8 +18,10 @@ const envSchema = z.object({
   REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(15000).transform((value) => Math.min(value, 60000)),
   DB_STATEMENT_TIMEOUT_MS: z.coerce.number().int().positive().default(5000).transform((value) => Math.min(value, 15000)),
   OUTBOUND_HTTP_TIMEOUT_MS: z.coerce.number().int().positive().default(8000).transform((value) => Math.min(value, 15000)),
-  TRAFFIC_MAX_CONCURRENT_REQUESTS: z.coerce.number().int().positive().default(200).transform((value) => Math.min(value, 5000)),
-  TRAFFIC_MAX_QUEUE_SIZE: z.coerce.number().int().nonnegative().default(500).transform((value) => Math.min(value, 10000)),
+  // Keep the in-process ceiling below Hostinger's 120-process limit. This
+  // prevents a database outage or traffic burst from exhausting the app.
+  TRAFFIC_MAX_CONCURRENT_REQUESTS: z.coerce.number().int().positive().default(40).transform((value) => Math.min(value, 5000)),
+  TRAFFIC_MAX_QUEUE_SIZE: z.coerce.number().int().nonnegative().default(100).transform((value) => Math.min(value, 10000)),
   TRAFFIC_QUEUE_TIMEOUT_MS: z.coerce.number().int().positive().default(5000).transform((value) => Math.min(value, 60000)),
   REDIS_URL: z.string().url().optional(),
   REDIS_KEY_PREFIX: z.string().trim().min(1).max(80).default("sshh:traffic"),
@@ -69,13 +71,6 @@ function normalizeDatabaseUrl(url: string) {
   // back to the platform's incompatible default TLS behavior.
   if (env.NODE_ENV === "production" || normalized.hostname.endsWith("supabase.com")) normalized.searchParams.set("sslmode", "require");
   if (normalized.hostname.endsWith("supabase.com")) {
-    // Hostinger cannot reliably reach Supabase's session pooler on 5432.
-    // Use the transaction pooler for the single-node runtime; Prisma needs
-    // the pgbouncer flag when connecting through that endpoint.
-    if (normalized.hostname.includes("pooler.supabase.com") && normalized.port === "5432") {
-      normalized.port = "6543";
-      normalized.searchParams.set("pgbouncer", "true");
-    }
     normalized.searchParams.set("connection_limit", "5");
     if (env.DATABASE_SSL_CA_BASE64) {
       const ca = Buffer.from(env.DATABASE_SSL_CA_BASE64, "base64").toString("utf8");
