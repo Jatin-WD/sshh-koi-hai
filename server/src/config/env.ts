@@ -20,8 +20,10 @@ const envSchema = z.object({
   OUTBOUND_HTTP_TIMEOUT_MS: z.coerce.number().int().positive().default(8000).transform((value) => Math.min(value, 15000)),
   // Keep the in-process ceiling below Hostinger's 120-process limit. This
   // prevents a database outage or traffic burst from exhausting the app.
-  TRAFFIC_MAX_CONCURRENT_REQUESTS: z.coerce.number().int().positive().default(40).transform((value) => Math.min(value, 5000)),
-  TRAFFIC_MAX_QUEUE_SIZE: z.coerce.number().int().nonnegative().default(100).transform((value) => Math.min(value, 10000)),
+  // Hard-cap these values so a stale hosting-panel variable cannot exhaust
+  // Hostinger's process quota again.
+  TRAFFIC_MAX_CONCURRENT_REQUESTS: z.coerce.number().int().positive().default(40).transform((value) => Math.min(value, 40)),
+  TRAFFIC_MAX_QUEUE_SIZE: z.coerce.number().int().nonnegative().default(100).transform((value) => Math.min(value, 100)),
   TRAFFIC_QUEUE_TIMEOUT_MS: z.coerce.number().int().positive().default(5000).transform((value) => Math.min(value, 60000)),
   REDIS_URL: z.string().url().optional(),
   REDIS_KEY_PREFIX: z.string().trim().min(1).max(80).default("sshh:traffic"),
