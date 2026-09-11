@@ -24,6 +24,11 @@ let clientTemplate: string | undefined;
 
 export const app = express();
 
+// Platform liveness must stay independent of auth and database readiness.
+app.get("/health/live", (_req, res) => {
+  return res.status(200).set("Cache-Control", "no-store").json({ status: "ok" });
+});
+
 if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
 // Avoid Express's extended `qs` parser for untrusted query/form input. The
 // native parser is sufficient for this API and prevents oversized comma/bracket

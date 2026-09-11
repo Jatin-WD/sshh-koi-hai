@@ -4,6 +4,10 @@ import { withDbStatementTimeout } from "../lib/dbTimeout.js";
 
 const healthRouter = Router();
 
+healthRouter.get("/health/live", (_req, res) => {
+  return res.status(200).set("Cache-Control", "no-store").json({ status: "ok" });
+});
+
 healthRouter.get("/health", (_req, res) => {
   return res.status(200).set("Cache-Control", "no-store").json({ success: true, status: "ok" });
 });

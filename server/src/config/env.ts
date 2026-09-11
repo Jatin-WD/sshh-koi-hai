@@ -18,6 +18,7 @@ const envSchema = z.object({
   REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(15000).transform((value) => Math.min(value, 60000)),
   DB_STATEMENT_TIMEOUT_MS: z.coerce.number().int().positive().default(5000).transform((value) => Math.min(value, 15000)),
   OUTBOUND_HTTP_TIMEOUT_MS: z.coerce.number().int().positive().default(8000).transform((value) => Math.min(value, 15000)),
+  PROCESS_DIAGNOSTICS: z.enum(["true", "false"]).default("false").transform((value) => value === "true"),
   // Keep the in-process ceiling below Hostinger's 120-process limit. This
   // prevents a database outage or traffic burst from exhausting the app.
   // Hard-cap these values so a stale hosting-panel variable cannot exhaust

@@ -13,6 +13,14 @@ server.headersTimeout = env.REQUEST_TIMEOUT_MS + 5000;
 server.keepAliveTimeout = 5000;
 const io = attachSocketServer(server);
 const databaseTarget = new URL(env.DATABASE_URL);
+const processDetails = () => ({
+  pid: process.pid,
+  ppid: process.ppid,
+  node: process.version,
+  uptime: Number(process.uptime().toFixed(3)),
+  memory: process.memoryUsage(),
+});
+logger.info(processDetails(), "Process started");
 logger.info({ databaseHost: databaseTarget.hostname, databasePort: databaseTarget.port || "5432", databaseName: databaseTarget.pathname.slice(1) }, "Database target configured");
 async function warmDatabase() {
   try {
@@ -33,15 +41,31 @@ server.listen(env.PORT, "0.0.0.0", () => {
   logger.info({ port: env.PORT }, "API listening");
 });
 
+if (env.PROCESS_DIAGNOSTICS) {
+  setInterval(() => logger.info(processDetails(), "Process diagnostics"), 60000).unref();
+}
+
+let shutdownStarted = false;
 async function shutdown(signal: string) {
-  logger.info({ signal }, "Received shutdown signal");
+  logger.warn({ signal, ...processDetails() }, "Operating-system shutdown signal received");
+  if (shutdownStarted) return;
+  shutdownStarted = true;
   io.close();
+  const forceExit = setTimeout(() => {
+    logger.error({ signal, ...processDetails() }, "Forced shutdown after graceful shutdown timeout");
+    process.exit(1);
+  }, 10000);
+  forceExit.unref();
   server.close(async () => {
     await prisma.$disconnect();
-    logger.info("Server closed");
+    clearTimeout(forceExit);
+    logger.info({ signal, exitCode: 0, ...processDetails() }, "Server closed");
     process.exit(0);
   });
 }
 
-process.on("SIGINT", () => void shutdown("SIGINT"));
-process.on("SIGTERM", () => void shutdown("SIGTERM"));
+process.once("SIGINT", () => void shutdown("SIGINT"));
+process.once("SIGTERM", () => void shutdown("SIGTERM"));
+process.once("exit", (code) => {
+  logger.info({ code, ...processDetails() }, "Process exiting");
+});
