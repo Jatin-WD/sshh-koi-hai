@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { databaseUrl } from "../config/env.js";
+import { databaseUrl, env } from "../config/env.js";
 
 declare global {
   // eslint-disable-next-line no-var
@@ -10,7 +10,10 @@ declare global {
 export const prisma =
   globalThis.prisma ??
   new PrismaClient({
-    adapter: new PrismaPg({ connectionString: databaseUrl }),
+    adapter: new PrismaPg({
+      connectionString: databaseUrl,
+      ...(env.DATABASE_SSL_ACCEPT_INVALID_CERTS ? { ssl: { rejectUnauthorized: false } } : {}),
+    }),
     log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
   });
 
