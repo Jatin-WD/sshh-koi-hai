@@ -1,5 +1,8 @@
 generator client {
   provider = "prisma-client-js"
+  // Hostinger runs Linux; include both common OpenSSL runtimes so Prisma is
+  // not deployed with a locally generated Windows/native query engine.
+  binaryTargets = ["native", "debian-openssl-1.1.x", "debian-openssl-3.0.x"]
 }
 
 datasource db {
