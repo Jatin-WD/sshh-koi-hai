@@ -101,6 +101,21 @@ router.patch("/users/:userId/status", async (req, res, next) => {
   } catch (error) { return next(error); }
 });
 
+router.delete("/users/:userId", async (req, res, next) => {
+  try {
+    const target = await prisma.user.findUnique({ where: { id: req.params.userId }, select: { id: true, role: true, status: true } });
+    if (!target) throw new AppError("User not found", 404, "USER_NOT_FOUND");
+    if (target.id === req.authUser!.id || target.role === UserRole.ADMIN) throw new AppError("This account cannot be deleted here", 400, "ADMIN_ACCOUNT_PROTECTED");
+    const deletedEmail = `deleted-${target.id}@deleted.local`;
+    await prisma.$transaction([
+      prisma.authToken.deleteMany({ where: { userId: target.id } }),
+      prisma.profile.deleteMany({ where: { userId: target.id } }),
+      prisma.user.update({ where: { id: target.id }, data: { email: deletedEmail, displayName: "Deleted member", city: null, status: "DELETED", isEmailVerified: false, passwordHash: await bcrypt.hash(crypto.randomBytes(24).toString("hex"), 12) } }),
+    ]);
+    return sendSuccess(res, { deleted: true, userId: target.id });
+  } catch (error) { return next(error); }
+});
+
 router.post("/users/:userId/verify-profile", async (req, res, next) => {
   try {
     const user = await prisma.user.findUnique({ where: { id: req.params.userId }, include: { profile: true } });
