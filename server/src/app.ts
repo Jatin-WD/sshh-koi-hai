@@ -81,6 +81,9 @@ app.use("/api/profile/images", express.raw({ type: ["image/jpeg", "image/png", "
 // roughly 10.7 MB when encoded, so leave room for the JSON envelope.
 app.use(express.json({ limit: "12mb" }));
 app.use(express.urlencoded({ extended: false, limit: "100kb", parameterLimit: 100 }));
+// Public assets are read-only and should not consume the application queue.
+app.use("/api/_assets", express.static(clientDist, { immutable: true, maxAge: "1y" }));
+app.use(express.static(clientDist));
 app.use(sharedTrafficLimit);
 app.use(trafficController);
 app.use(apiRateLimit);
@@ -94,14 +97,10 @@ app.get("/api", (_req, res) => {
   });
 });
 
-// Hostinger's managed proxy reliably forwards /api paths. Serve the Vite
-// production bundle there so JS/CSS assets are not blocked at the web root.
-app.use("/api/_assets", express.static(clientDist, { immutable: true, maxAge: "1y" }));
 app.use("/api", routes);
 
 // The managed Hostinger deployment runs one Node process, so serve the Vite
 // build from Express while keeping API and Socket.IO paths untouched.
-app.use(express.static(clientDist));
 app.use((req, res, next) => {
   if (!["GET", "HEAD"].includes(req.method)) {
     next();

@@ -10,7 +10,9 @@ healthRouter.get("/health", (_req, res) => {
 
 healthRouter.get("/health/db", async (_req, res) => {
   try {
-    await withDbStatementTimeout((tx) => tx.$queryRaw`SELECT 1`, undefined, 3);
+    // Health checks should fail fast and never create reconnect storms while
+    // the database is unavailable.
+    await withDbStatementTimeout((tx) => tx.$queryRaw`SELECT 1`, undefined, 0);
     return res.status(200).set("Cache-Control", "no-store").json({ success: true, status: "ok", database: "connected" });
   } catch (error) {
     const message = error instanceof Error ? error.message.toLowerCase() : "";

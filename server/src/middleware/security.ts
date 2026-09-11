@@ -39,7 +39,8 @@ function attachTrafficRelease(res: Parameters<RequestHandler>[1]) {
 // A bounded FIFO queue prevents a traffic spike from exhausting the Node
 // process. It deliberately skips health checks and Socket.IO handshakes.
 export const trafficController: RequestHandler = (req, res, next) => {
-  if (req.path === "/api" || req.path.startsWith("/socket.io")) return next();
+  // Health checks and static assets must never wait behind application work.
+  if (req.path === "/api" || req.path.startsWith("/api/health") || req.path.startsWith("/api/_assets") || req.path.startsWith("/socket.io") || (req.method === "GET" && !req.path.startsWith("/api/"))) return next();
   if (activeRequests < env.TRAFFIC_MAX_CONCURRENT_REQUESTS) {
     activeRequests += 1;
     attachTrafficRelease(res);
@@ -69,7 +70,7 @@ if (env.REDIS_URL) {
 // Shared fixed-window limiter for multi-instance deployments. The local
 // queue/rate limits remain authoritative when Redis is not configured.
 export const sharedTrafficLimit: RequestHandler = (req, res, next) => {
-  if (!sharedRedis || req.path === "/api" || req.path.startsWith("/socket.io")) return next();
+  if (!sharedRedis || req.path === "/api" || req.path.startsWith("/api/health") || req.path.startsWith("/api/_assets") || req.path.startsWith("/socket.io") || (req.method === "GET" && !req.path.startsWith("/api/"))) return next();
   const ip = req.ip || req.socket.remoteAddress || "unknown";
   const key = `${env.REDIS_KEY_PREFIX}:ip:${ip}:10s`;
   void sharedRedis.multi().incr(key).expire(key, 10).exec().then((results: any) => {
