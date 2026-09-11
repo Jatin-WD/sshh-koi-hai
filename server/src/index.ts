@@ -17,6 +17,7 @@ logger.info({ databaseHost: databaseTarget.hostname, databasePort: databaseTarge
 async function warmDatabase() {
   try {
     await prisma.$connect();
+    await prisma.$queryRaw`SELECT 1`;
     logger.info("Database connection ready");
   } catch (error) {
     // Prisma connects lazily for requests. Do not retry immediately during

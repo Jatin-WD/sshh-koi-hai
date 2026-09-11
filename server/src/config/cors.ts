@@ -11,7 +11,7 @@ export const corsOptions: CorsOptions = corsOrigins.length === 0
         return;
       }
 
-      callback(new AppError("CORS origin not allowed", 403, "CORS_ORIGIN_REJECTED"));
+      callback(new AppError(`CORS origin not allowed: ${origin}`, 403, "CORS_ORIGIN_REJECTED"));
     },
     credentials: true,
   };
