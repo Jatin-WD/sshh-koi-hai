@@ -83,10 +83,4 @@ async function gracefulShutdown(signal: string) {
   io.close();
 }
 
-const signals = ["SIGTERM", "SIGINT", "SIGHUP", "SIGQUIT"] as const;
-for (const signal of signals) {
-  process.once(signal, () => handleSignal(signal));
-}
-process.once("exit", (code) => {
-  logger.info({ code, ...processDetails() }, "Process exiting");
-});
+process.once("SIGTERM", () => handleSignal("SIGTERM"));

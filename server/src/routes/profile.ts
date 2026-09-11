@@ -25,7 +25,7 @@ router.put("/me", requireAuth, async (req, res, next) => {
     const input = profileSchema.parse(req.body); const userId = req.authUser!.id;
     const userData = pick(input, ["displayName", "gender", "city", "maritalStatus", "lookingFor"]);
     const profileData = pick(input, ["bio", "interests", "occupation", "education", "languages", "relationshipIntent", "genderPreference", "agePreferenceMin", "agePreferenceMax", "locationPreference", "visibility", "showOnlineStatus", "showCity", "allowInterests"]);
-    const updatedUser = await prisma.user.update({ where: { id: userId }, data: userData }); const updatedProfile = await prisma.profile.update({ where: { userId }, data: profileData }); const completion = profileCompletion(updatedUser, updatedProfile);
+    const updatedUser = await prisma.user.update({ where: { id: userId }, data: userData }); const updatedProfile = await prisma.profile.upsert({ where: { userId }, update: profileData, create: { userId, ...profileData } }); const completion = profileCompletion(updatedUser, updatedProfile);
     let visibilityNotice: string | undefined;
     if (updatedProfile.visibility === "VISIBLE" && completion < 60) { await prisma.profile.update({ where: { id: updatedProfile.id }, data: { visibility: "HIDDEN" } }); updatedProfile.visibility = "HIDDEN"; visibilityNotice = "Complete at least 60% of your profile before making it visible."; }
     void sendAdminActivityEmail("Profile updated", { userId, name: updatedUser.displayName, email: updatedUser.email, completion, visibility: updatedProfile.visibility, updatedAt: updatedProfile.updatedAt.toISOString() });
