@@ -22,7 +22,9 @@ async function warmDatabase() {
     // Prisma connects lazily for requests. Do not retry immediately during
     // startup: a database outage must not create a connection storm or make
     // the hosting process restart loop worse.
-    logger.error({ err: error }, "Database warm-up failed; continuing with lazy reconnect");
+    const message = error instanceof Error ? error.message : String(error);
+    const code = error && typeof error === "object" && "code" in error && typeof error.code === "string" ? error.code : undefined;
+    logger.error({ message: message.replace(/(postgres(?:ql)?:\/\/[^:]+:)[^@]+(@)/i, "$1[redacted]$2"), code }, "Database warm-up failed; continuing with lazy reconnect");
   }
 }
 void warmDatabase();
