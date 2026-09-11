@@ -23,7 +23,16 @@ const processDetails = () => ({
   uptime: Number(process.uptime().toFixed(3)),
   memory: process.memoryUsage(),
 });
-logger.info({ port: env.PORT, ...processDetails() }, "Process started");
+console.log("PROCESS_START_DIAGNOSTIC", {
+  pid: process.pid,
+  ppid: process.ppid,
+  node: process.version,
+  execPath: process.execPath,
+  argv: process.argv,
+  cwd: process.cwd(),
+  port: process.env.PORT,
+  timestamp: new Date().toISOString(),
+});
 logger.info({ databaseHost: databaseTarget.hostname, databasePort: databaseTarget.port || "5432", databaseName: databaseTarget.pathname.slice(1) }, "Database target configured");
 async function warmDatabase() {
   try {
@@ -50,11 +59,17 @@ if (env.PROCESS_DIAGNOSTICS) {
 
 let shutdownStarted = false;
 function handleSignal(signal: NodeJS.Signals) {
-  logger.warn({ signal, pid: process.pid, ppid: process.ppid, uptime: process.uptime(), timestamp: new Date().toISOString() }, "OS signal received");
-  void shutdown(signal);
+  console.error("OS_SIGNAL_DIAGNOSTIC", {
+    signal,
+    pid: process.pid,
+    ppid: process.ppid,
+    uptimeSeconds: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+  void gracefulShutdown(signal);
 }
 
-async function shutdown(signal: string) {
+async function gracefulShutdown(signal: string) {
   if (shutdownStarted) return;
   shutdownStarted = true;
   io.close();
@@ -71,10 +86,10 @@ async function shutdown(signal: string) {
   });
 }
 
-process.once("SIGTERM", () => handleSignal("SIGTERM"));
-process.once("SIGINT", () => handleSignal("SIGINT"));
-process.once("SIGHUP", () => handleSignal("SIGHUP"));
-process.once("SIGQUIT", () => handleSignal("SIGQUIT"));
+const signals = ["SIGTERM", "SIGINT", "SIGHUP", "SIGQUIT"] as const;
+for (const signal of signals) {
+  process.once(signal, () => handleSignal(signal));
+}
 process.once("exit", (code) => {
   logger.info({ code, ...processDetails() }, "Process exiting");
 });
