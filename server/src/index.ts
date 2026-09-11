@@ -5,6 +5,7 @@ import { attachSocketServer } from "./realtime/socket.js";
 import { prisma } from "./db/prisma.js";
 import { logger } from "./lib/logger.js";
 const server = createServer(app);
+const PORT = Number(process.env.PORT) || 3000;
 // Keep the Node upstream below Hostinger's 120-entry-process quota even when
 // the reverse proxy opens many concurrent connections.
 server.maxConnections = 50;
@@ -30,7 +31,7 @@ console.log("PROCESS_START_DIAGNOSTIC", {
   execPath: process.execPath,
   argv: process.argv,
   cwd: process.cwd(),
-  port: process.env.PORT,
+  port: PORT,
   timestamp: new Date().toISOString(),
 });
 logger.info({ databaseHost: databaseTarget.hostname, databasePort: databaseTarget.port || "5432", databaseName: databaseTarget.pathname.slice(1) }, "Database target configured");
@@ -49,8 +50,8 @@ async function warmDatabase() {
   }
 }
 void warmDatabase();
-server.listen(env.PORT, "0.0.0.0", () => {
-  logger.info({ port: env.PORT }, "API listening");
+server.listen(PORT, "0.0.0.0", () => {
+  logger.info({ port: PORT, pid: process.pid }, "API listening");
 });
 
 if (env.PROCESS_DIAGNOSTICS) {

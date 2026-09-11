@@ -13,7 +13,7 @@ dotenv.config({ path: path.resolve(process.cwd(), "../.env") });
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   // Hostinger's managed Node runtime routes traffic to port 3000 by default.
-  // Local development can still override this with PORT=4000.
+  // Hostinger's managed runtime supplies PORT; 3000 is the safe fallback.
   PORT: z.coerce.number().int().positive().default(3000),
   REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(15000).transform((value) => Math.min(value, 60000)),
   DB_STATEMENT_TIMEOUT_MS: z.coerce.number().int().positive().default(5000).transform((value) => Math.min(value, 15000)),
