@@ -30,7 +30,9 @@ function pruneConnectionAttempts(now: number) {
 }
 
 export function attachSocketServer(httpServer: HttpServer) {
-  const io = new Server(httpServer, { cors: { origin: corsOrigins, credentials: true }, maxHttpBufferSize: 64 * 1024 });
+  // Avoid Socket.IO long-polling workers on shared hosting. Chat uses a
+  // single WebSocket connection instead of holding extra HTTP poll requests.
+  const io = new Server(httpServer, { cors: { origin: corsOrigins, credentials: true }, transports: ["websocket"], maxHttpBufferSize: 64 * 1024 });
   io.use(async (socket, next) => {
     try {
       const address = socket.handshake.address;
