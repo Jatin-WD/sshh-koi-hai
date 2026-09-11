@@ -97,13 +97,21 @@ if (env.NODE_ENV === "production") {
   if (!process.env.DATABASE_URL || env.DATABASE_URL.includes("localhost") || env.DATABASE_URL.includes("postgres:postgres")) throw new Error("Production DATABASE_URL must be explicitly configured");
 }
 
-export const corsOrigins = Array.from(
-  new Set(
-    [env.CLIENT_ORIGIN, ...(env.CORS_ORIGINS?.split(",") ?? [])]
-      .filter((origin): origin is string => Boolean(origin))
-      .map((origin) => origin.trim())
-      .filter(Boolean),
-  ),
-);
+const configuredOrigins = [env.CLIENT_ORIGIN, ...(env.CORS_ORIGINS?.split(",") ?? [])]
+  .filter((origin): origin is string => Boolean(origin))
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+// Treat the apex and www host as the same first-party site. Hostinger and
+// browsers can reach either variant depending on the redirect/proxy path.
+export const corsOrigins = Array.from(new Set(configuredOrigins.flatMap((origin) => {
+  try {
+    const url = new URL(origin);
+    const hosts = url.hostname.startsWith("www.") ? [url.hostname, url.hostname.slice(4)] : [url.hostname, `www.${url.hostname}`];
+    return hosts.map((host) => `${url.protocol}//${host}${url.port ? `:${url.port}` : ""}`);
+  } catch {
+    return [origin];
+  }
+})));
 
 export const publicAppUrl = env.APP_URL ?? env.FRONTEND_URL ?? env.CLIENT_APP_URL ?? env.CLIENT_ORIGIN ?? `http://localhost:${env.PORT}`;
