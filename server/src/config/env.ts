@@ -69,6 +69,13 @@ function normalizeDatabaseUrl(url: string) {
   // back to the platform's incompatible default TLS behavior.
   if (env.NODE_ENV === "production" || normalized.hostname.endsWith("supabase.com")) normalized.searchParams.set("sslmode", "require");
   if (normalized.hostname.endsWith("supabase.com")) {
+    // Hostinger cannot reliably reach Supabase's session pooler on 5432.
+    // Use the transaction pooler for the single-node runtime; Prisma needs
+    // the pgbouncer flag when connecting through that endpoint.
+    if (normalized.hostname.includes("pooler.supabase.com") && normalized.port === "5432") {
+      normalized.port = "6543";
+      normalized.searchParams.set("pgbouncer", "true");
+    }
     normalized.searchParams.set("connection_limit", "5");
     if (env.DATABASE_SSL_CA_BASE64) {
       const ca = Buffer.from(env.DATABASE_SSL_CA_BASE64, "base64").toString("utf8");
