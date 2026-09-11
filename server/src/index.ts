@@ -12,18 +12,18 @@ server.requestTimeout = env.REQUEST_TIMEOUT_MS;
 server.headersTimeout = env.REQUEST_TIMEOUT_MS + 5000;
 server.keepAliveTimeout = 5000;
 const io = attachSocketServer(server);
+const databaseTarget = new URL(env.DATABASE_URL);
+logger.info({ databaseHost: databaseTarget.hostname, databasePort: databaseTarget.port || "5432", databaseName: databaseTarget.pathname.slice(1) }, "Database target configured");
 async function warmDatabase() {
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
-    try {
-      await prisma.$connect();
-      logger.info({ attempt }, "Database connection ready");
-      return;
-    } catch (error) {
-      logger.warn({ err: error, attempt }, "Database warm-up failed; retrying");
-      if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
-    }
+  try {
+    await prisma.$connect();
+    logger.info("Database connection ready");
+  } catch (error) {
+    // Prisma connects lazily for requests. Do not retry immediately during
+    // startup: a database outage must not create a connection storm or make
+    // the hosting process restart loop worse.
+    logger.error({ err: error }, "Database warm-up failed; continuing with lazy reconnect");
   }
-  logger.error("Database warm-up exhausted; Prisma will reconnect on demand");
 }
 void warmDatabase();
 server.listen(env.PORT, "0.0.0.0", () => {
