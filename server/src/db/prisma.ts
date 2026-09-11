@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { databaseUrl } from "../config/env.js";
 
 declare global {
@@ -9,12 +10,8 @@ declare global {
 export const prisma =
   globalThis.prisma ??
   new PrismaClient({
+    adapter: new PrismaPg({ connectionString: databaseUrl }),
     log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
-    datasources: {
-      db: {
-        url: databaseUrl,
-      },
-    },
   });
 
 let reconnectPromise: Promise<void> | null = null;
