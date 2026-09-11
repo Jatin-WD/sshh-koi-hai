@@ -12,7 +12,7 @@ export function errorHandler(
   _next: NextFunction,
 ) {
   if (error instanceof AppError) {
-    logger.warn({ err: error, method: req.method, path: req.originalUrl, statusCode: error.statusCode }, "API request failed");
+    logger.warn({ method: req.method, path: req.originalUrl, statusCode: error.statusCode, code: error.code, message: error.message }, "API request failed");
     return sendError(res, error.statusCode, error.message, error.code);
   }
 
@@ -22,7 +22,7 @@ export function errorHandler(
   }
 
   if (error instanceof Prisma.PrismaClientInitializationError || error instanceof Prisma.PrismaClientRustPanicError || isDatabaseConnectionError(error)) {
-    logger.error({ err: error, method: req.method, path: req.originalUrl }, "Database unavailable during API request");
+    logger.error({ method: req.method, path: req.originalUrl, statusCode: 503, code: error instanceof Prisma.PrismaClientKnownRequestError ? error.code : undefined, message: error instanceof Error ? error.message : String(error) }, "Database unavailable during API request");
     res.set("Retry-After", "5");
     return sendError(res, 503, "The private space is temporarily unavailable. Please try again in a moment.", "DATABASE_UNAVAILABLE");
   }
