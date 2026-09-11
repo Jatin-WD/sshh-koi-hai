@@ -14,7 +14,9 @@ import { assertMessagingMembership } from "../lib/membership.js";
 const conversationRoom = (id: string) => `conversation:${id}`;
 const messageInput = z.object({ conversationId: z.string().min(1), content: z.string().trim().min(1).max(4000), type: z.literal("TEXT").default("TEXT") });
 const connectionAttempts = new Map<string, { count: number; resetAt: number }>();
+const activeSocketsByAddress = new Map<string, number>();
 const maxTrackedConnectionIps = 10_000;
+const maxActiveSocketsPerAddress = 2;
 
 function pruneConnectionAttempts(now: number) {
   for (const [address, attempt] of connectionAttempts) {
@@ -34,13 +36,18 @@ export function attachSocketServer(httpServer: HttpServer) {
       const address = socket.handshake.address;
       const now = Date.now();
       pruneConnectionAttempts(now);
+      const activeSockets = activeSocketsByAddress.get(address) ?? 0;
+      if (activeSockets >= maxActiveSocketsPerAddress) throw new AppError("Too many active private connections", 429, "SOCKET_CONNECTION_LIMIT");
       const attempt = connectionAttempts.get(address);
       if (!attempt || attempt.resetAt <= now) connectionAttempts.set(address, { count: 1, resetAt: now + 60_000 });
       else { attempt.count += 1; if (attempt.count > 30) throw new AppError("Too many connection attempts", 429, "SOCKET_RATE_LIMITED"); }
       const token = readCookie(socket.handshake.headers.cookie, "sshh_access"); if (!token) throw new AppError("Authentication required", 401, "AUTH_REQUIRED");
       const payload = jwt.verify(token, env.JWT_ACCESS_SECRET, { algorithms: ["HS256"] }) as jwt.JwtPayload; if (typeof payload.sub !== "string" || payload.type !== "access") throw new AppError("Invalid session", 401, "INVALID_SESSION");
       const user = await prisma.user.findUnique({ where: { id: payload.sub } }); if (!user || user.status !== "ACTIVE" || !user.isEmailVerified) throw new AppError("Account unavailable", 401, "ACCOUNT_UNAVAILABLE");
-      socket.data.userId = user.id; next();
+      activeSocketsByAddress.set(address, activeSockets + 1);
+      socket.data.userId = user.id;
+      socket.data.remoteAddress = address;
+      next();
     } catch (error) { next(new Error(error instanceof AppError ? error.code ?? error.message : "Invalid session")); }
   });
   io.on("connection", (socket) => registerSocketHandlers(io, socket));
@@ -54,7 +61,13 @@ function registerSocketHandlers(io: Server, socket: Socket) {
   socket.on("message:send", async (payload: unknown) => { try { const input = messageInput.parse(payload); const access = await authorizeConversation(userId(), input.conversationId); const message = await prisma.message.create({ data: { conversationId: access.id, senderId: userId(), content: input.content, type: input.type } }); await prisma.conversation.update({ where: { id: access.id }, data: { lastMessageAt: message.createdAt } }); const recipientId = access.members.find((member) => member.id !== userId())?.id; if (recipientId) await createNotification(recipientId, "NEW_MESSAGE", "New message", "You have a new private message.", { conversationId: access.id }); const sockets = await io.in(conversationRoom(access.id)).fetchSockets(); if (sockets.some((peer) => peer.id !== socket.id)) { const delivered = await prisma.message.update({ where: { id: message.id }, data: { deliveredAt: new Date() } }); io.to(conversationRoom(access.id)).emit("message:new", serializeMessage(delivered)); } else { socket.emit("message:new", serializeMessage(message)); } } catch (error) { emitError(socket, error); } });
   socket.on("conversation:typing", async (payload: unknown) => { try { const input = z.object({ conversationId: z.string().min(1), typing: z.boolean() }).parse(payload); const access = await authorizeConversation(userId(), input.conversationId); socket.to(conversationRoom(access.id)).emit("conversation:typing", { conversationId: access.id, userId: userId(), typing: input.typing }); } catch (error) { emitError(socket, error); } });
   socket.on("message:read", async (payload: unknown) => { try { const input = z.object({ conversationId: z.string().min(1), messageId: z.string().min(1) }).parse(payload); const access = await authorizeConversation(userId(), input.conversationId); const updated = await prisma.message.updateMany({ where: { id: input.messageId, conversationId: access.id, senderId: { not: userId() }, readAt: null }, data: { readAt: new Date(), deliveredAt: new Date() } }); if (updated.count) io.to(conversationRoom(access.id)).emit("message:read", { messageId: input.messageId, conversationId: access.id, readAt: new Date().toISOString() }); } catch (error) { emitError(socket, error); } });
-  socket.on("disconnect", () => undefined);
+  socket.on("disconnect", () => {
+    const address = socket.data.remoteAddress as string | undefined;
+    if (!address) return;
+    const remaining = (activeSocketsByAddress.get(address) ?? 1) - 1;
+    if (remaining > 0) activeSocketsByAddress.set(address, remaining);
+    else activeSocketsByAddress.delete(address);
+  });
 }
 
 async function authorizeConversation(userId: string, conversationId: string | undefined) {
