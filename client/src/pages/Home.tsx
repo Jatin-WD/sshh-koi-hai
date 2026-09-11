@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 
 const intentions = ["Meaningful conversation", "Companionship", "A private connection", "Friendship", "Something intentional", "Someone who understands"];
@@ -9,6 +10,7 @@ function MemberPreview() {
 
 function ExampleProfiles() {
   const profiles = [["Trisha", "38", "Delhi", "A thoughtful and steady relationship", "/demo-profiles/trisha.png"], ["Simran", "34", "Delhi", "Something honest and unhurried", "/demo-profiles/simran.png"], ["Anika", "30", "Mumbai", "A mature relationship built with care", "/demo-profiles/anika-resort.png"]];
+  useEffect(() => { profiles.forEach(([, , , , image]) => { const preload = new Image(); preload.src = image; }); }, []);
   return <section className="border-b border-charcoal/10 bg-cream"><div className="mx-auto max-w-7xl px-6 py-16 lg:px-10"><div className="flex flex-wrap items-end justify-between gap-5"><div><p className="eyebrow text-burgundy/65">A glimpse inside</p><h2 className="mt-4 font-display text-4xl sm:text-5xl">People looking for something real.</h2><p className="mt-4 max-w-2xl text-sm leading-7 text-charcoal/60">These example profiles show how members can introduce themselves. Real member visibility is always controlled by privacy settings.</p></div><span className="rounded-full border border-charcoal/15 px-4 py-2 text-[10px] uppercase tracking-[0.2em] text-charcoal/50">Example previews</span></div><div className="mt-9 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{profiles.map(([name, age, city, intent, image]) => <article key={name} className="overflow-hidden rounded-3xl border border-charcoal/10 bg-white/75 shadow-sm"><div className="aspect-[4/3] bg-plum"><img src={image} alt="Example member profile" loading="lazy" className="h-full w-full object-cover" /></div><div className="p-5"><h3 className="font-display text-2xl">{name}, {age}</h3><p className="mt-1 text-sm text-charcoal/50">{city}</p><p className="mt-4 text-sm leading-6 text-charcoal/65">{intent}</p><span className="mt-4 inline-flex rounded-full bg-cream px-3 py-1 text-xs text-burgundy">Privacy-aware preview</span></div></article>)}</div></div></section>;
 }
 

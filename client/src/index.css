@@ -26,6 +26,12 @@ body {
   box-sizing: border-box;
 }
 
+/* Preserve the complete portrait instead of cropping faces and body framing. */
+img.object-cover {
+  object-fit: contain !important;
+  background: #f6efe7;
+}
+
 a {
   color: inherit;
   text-decoration: none;
