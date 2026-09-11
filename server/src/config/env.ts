@@ -84,7 +84,15 @@ function normalizeDatabaseUrl(url: string) {
       }
     }
   }
-  if (env.DATABASE_SSL_ACCEPT_INVALID_CERTS) normalized.searchParams.set("sslaccept", "accept_invalid_certs");
+  // pg-connection-string v2 currently treats `require` as `verify-full` and
+  // warns that this behavior will change in v3. When the database provider's
+  // certificate chain cannot be trusted by the host (common with managed
+  // poolers), explicitly opt into libpq-compatible `require` semantics. The
+  // CA path above always takes precedence and keeps strict verification.
+  if (env.DATABASE_SSL_ACCEPT_INVALID_CERTS && !normalized.searchParams.has("sslrootcert")) {
+    normalized.searchParams.set("uselibpqcompat", "true");
+    normalized.searchParams.set("sslmode", "require");
+  }
   return normalized.toString();
 }
 

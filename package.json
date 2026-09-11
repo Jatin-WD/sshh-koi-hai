@@ -7,6 +7,16 @@
   ],
   "overrides": {
     "esbuild": "0.28.2",
+    "deepmerge-ts": "8.0.0",
+    "effect": "3.20.0",
+    "@prisma/config": {
+      "deepmerge-ts": "8.0.0",
+      "effect": "3.20.0"
+    },
+    "@prisma/config@6.19.2": {
+      "deepmerge-ts": "8.0.0",
+      "effect": "3.20.0"
+    },
     "express": {
       "qs": "6.16.0"
     },
@@ -28,6 +38,8 @@
     "prisma:seed": "npm run prisma:seed -w server"
   },
   "dependencies": {
-    "qs": "6.16.0"
+    "qs": "6.16.0",
+    "deepmerge-ts": "8.0.0",
+    "effect": "3.20.0"
   }
 }

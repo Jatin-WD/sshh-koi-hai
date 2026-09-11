@@ -12,6 +12,8 @@ export const prisma =
   new PrismaClient({
     adapter: new PrismaPg({
       connectionString: databaseUrl,
+      // Keep this explicit as a guard for pg versions that merge adapter
+      // options differently from the connection-string parser.
       ...(env.DATABASE_SSL_ACCEPT_INVALID_CERTS ? { ssl: { rejectUnauthorized: false } } : {}),
     }),
     log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
