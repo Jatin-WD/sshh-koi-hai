@@ -5,6 +5,9 @@ import { attachSocketServer } from "./realtime/socket.js";
 import { prisma } from "./db/prisma.js";
 import { logger } from "./lib/logger.js";
 const server = createServer(app);
+// Keep the Node upstream below Hostinger's 120-entry-process quota even when
+// the reverse proxy opens many concurrent connections.
+server.maxConnections = 50;
 server.requestTimeout = env.REQUEST_TIMEOUT_MS;
 server.headersTimeout = env.REQUEST_TIMEOUT_MS + 5000;
 server.keepAliveTimeout = 5000;

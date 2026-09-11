@@ -81,14 +81,15 @@ app.use("/api/profile/images", express.raw({ type: ["image/jpeg", "image/png", "
 // roughly 10.7 MB when encoded, so leave room for the JSON envelope.
 app.use(express.json({ limit: "12mb" }));
 app.use(express.urlencoded({ extended: false, limit: "100kb", parameterLimit: 100 }));
-// Public assets are read-only and should not consume the application queue.
-app.use("/api/_assets", express.static(clientDist, { immutable: true, maxAge: "1y" }));
-app.use(express.static(clientDist));
 app.use(sharedTrafficLimit);
 app.use(trafficController);
 app.use(apiRateLimit);
 app.use(requireTrustedOrigin);
 app.use("/api/profile/images", uploadRateLimit);
+// Static assets also pass through the bounded controller so a bot or asset
+// burst cannot consume the hosting provider's entire process quota.
+app.use("/api/_assets", express.static(clientDist, { immutable: true, maxAge: "1y" }));
+app.use(express.static(clientDist));
 
 app.get("/api", (_req, res) => {
   res.json({
