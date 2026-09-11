@@ -35,7 +35,7 @@ export default function Messages() {
 
   useEffect(() => {
     void loadConversations();
-    const socket = io(socketUrl, { withCredentials: true }); socketRef.current = socket;
+    const socket = io(socketUrl, { withCredentials: true, reconnection: true, reconnectionAttempts: 3, reconnectionDelay: 2000, reconnectionDelayMax: 10000, timeout: 5000 }); socketRef.current = socket;
     socket.on("connect", () => { setStatus("Private connection active"); if (selectedId) socket.emit("conversation:join", { conversationId: selectedId }); });
     socket.on("disconnect", () => setStatus("Offline - reconnecting")); socket.on("connect_error", () => setStatus("Unable to connect privately"));
     socket.on("message:new", (message: Message) => { setMessages((current) => current.some((item) => item.id === message.id) ? current : [...current, message]); if (message.senderId === user?.id) { pendingDraftRef.current = ""; setDraft(""); setSending(false); } else socket.emit("message:read", { conversationId: message.conversationId, messageId: message.id }); void loadConversations(); });
