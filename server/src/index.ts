@@ -54,10 +54,6 @@ server.listen(PORT, "0.0.0.0", () => {
   logger.info({ port: PORT, pid: process.pid }, "API listening");
 });
 
-if (env.PROCESS_DIAGNOSTICS) {
-  setInterval(() => logger.info(processDetails(), "Process diagnostics"), 60000).unref();
-}
-
 let shutdownStarted = false;
 function handleSignal(signal: NodeJS.Signals) {
   console.error("OS_SIGNAL_DIAGNOSTIC", {
@@ -73,7 +69,6 @@ function handleSignal(signal: NodeJS.Signals) {
 async function gracefulShutdown(signal: string) {
   if (shutdownStarted) return;
   shutdownStarted = true;
-  io.close();
   const forceExit = setTimeout(() => {
     logger.error({ signal, ...processDetails() }, "Forced shutdown after graceful shutdown timeout");
     process.exit(1);
@@ -85,6 +80,7 @@ async function gracefulShutdown(signal: string) {
     logger.info({ signal, exitCode: 0, ...processDetails() }, "Server closed");
     process.exit(0);
   });
+  io.close();
 }
 
 const signals = ["SIGTERM", "SIGINT", "SIGHUP", "SIGQUIT"] as const;
