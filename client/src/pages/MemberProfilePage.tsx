@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { api } from "../lib/api";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { api, ApiError } from "../lib/api";
 import SafetyActions from "../components/SafetyActions";
 
 type Profile = { id: string; displayName: string; age: number; gender?: string; city: string | null; bio: string | null; interests: string[]; profileImages: string[]; primaryImageIndex: number; lookingFor?: string | null; relationshipIntent?: string | null; occupation?: string | null; education?: string | null; languages?: string[]; canReceiveInterest?: boolean };
@@ -8,6 +8,7 @@ const intentLabels: Record<string, string> = { CHAT: "Private conversation", FRI
 
 export default function MemberProfilePage() {
   const { userId } = useParams();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -28,7 +29,7 @@ export default function MemberProfilePage() {
     if (!profile || profile.canReceiveInterest === false || sending || sent) return;
     setSending(true); setError(""); setMembershipPrompt(false);
     try { await api("/interests", { method: "POST", body: JSON.stringify({ receiverId: profile.id }) }); setSent(true); }
-    catch (e) { const message = e instanceof Error ? e.message : "Unable to send interest"; if (message.toLowerCase().includes("membership")) setMembershipPrompt(true); else setError(message); }
+    catch (e) { const message = e instanceof Error ? e.message : "Unable to send interest"; if (e instanceof ApiError && e.code === "MEMBERSHIP_REQUIRED") navigate("/membership?reason=interest"); else if (message.toLowerCase().includes("membership")) setMembershipPrompt(true); else setError(message); }
     finally { setSending(false); }
   }
 
