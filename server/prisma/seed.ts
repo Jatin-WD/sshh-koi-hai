@@ -2,9 +2,10 @@ import "dotenv/config";
 import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { databaseUrl } from "../src/config/env.js";
 
-const prisma = new PrismaClient({ datasources: { db: { url: databaseUrl } } });
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: databaseUrl }) });
 const TERMS_VERSION = "2026-08-31";
 const demoPassword = process.env.DEMO_INITIAL_PASSWORD || `Demo-${cryptoRandom()}-Only!`;
 
@@ -64,6 +65,35 @@ const demoUsers = [
   { key: "isha", email: "isha.resort.demo@example.test", displayName: "Isha Kapoor", gender: "FEMALE" as const, city: "Goa", maritalStatus: "SINGLE" as const, lookingFor: "DATING" as const, age: 29, interests: ["Travel", "Swimming", "Cinema"], bio: "Drawn to sunny places, honest conversations, and people who make room for laughter.", occupation: "Brand strategist", education: "Marketing", languages: ["English", "Hindi"], relationshipIntent: "A warm, intentional connection", onlineStatus: true },
   { key: "anika", email: "anika.resort.demo@example.test", displayName: "Anika Rao", gender: "FEMALE" as const, city: "Mumbai", maritalStatus: "SINGLE" as const, lookingFor: "RELATIONSHIP" as const, age: 30, interests: ["Architecture", "Travel", "Books"], bio: "A calm optimist who loves thoughtful design, slow evenings, and conversations with depth.", occupation: "Architect", education: "Architecture", languages: ["English", "Hindi", "Marathi"], relationshipIntent: "A mature relationship built with care", onlineStatus: false },
 ];
+const memberUsers = [
+  ["Aanya Sharma", "15 May 2002", "SINGLE", "Delhi", "aanya.sharma2402@gmail.com", "Creative soul who loves weekend getaways and good conversations.", "Serious relationship", ["Travel", "Photography", "Music"], "RELATIONSHIP"],
+  ["Meera Kapoor", "22 Feb 1999", "SINGLE", "Mumbai", "meera.kapoor2799@gmail.com", "Ambitious professional with a soft spot for coffee and books.", "Long-term relationship", ["Reading", "Cafés", "Fitness"], "RELATIONSHIP"],
+  ["Kavya Singh", "8 Aug 2003", "SINGLE", "Jaipur", "kavya.singh2303@gmail.com", "Easygoing, cheerful and always looking for new experiences.", "Meaningful connection", ["Dance", "Travel", "Movies"], "DATING"],
+  ["Riya Malhotra", "19 Jan 1997", "DIVORCED", "Chandigarh", "riya.malhotra2997@gmail.com", "Independent and mature, looking for a fresh start in life.", "Serious relationship", ["Cooking", "Wellness", "Gardening"], "RELATIONSHIP"],
+  ["Ananya Verma", "3 Nov 2000", "SINGLE", "Lucknow", "ananya.verma2500@gmail.com", "Loves exploring new places and making lasting memories.", "Long-term relationship", ["Travel", "Food", "Photography"], "RELATIONSHIP"],
+  ["Ishita Gupta", "27 Jun 2000", "SINGLE", "Bengaluru", "ishita.gupta2600@gmail.com", "Tech enthusiast who enjoys quiet evenings and deep talks.", "Serious relationship", ["Technology", "Books", "Hiking"], "RELATIONSHIP"],
+  ["Nisha Patel", "11 Apr 1995", "SINGLE", "Ahmedabad", "nisha.patel3195@gmail.com", "Confident, family-oriented and enjoys a balanced lifestyle.", "Meaningful connection", ["Cooking", "Yoga", "Music"], "RELATIONSHIP"],
+  ["Pooja Mehta", "6 Dec 1997", "WIDOWED", "Pune", "pooja.mehta2897@gmail.com", "Kind-hearted and optimistic, ready to meet someone genuine.", "Companionship", ["Gardening", "Music", "Travel"], "CHAT"],
+  ["Simran Kaur", "14 Sep 2003", "SINGLE", "Amritsar", "simran.kaur2203@gmail.com", "Young, energetic and passionate about creativity.", "Dating with intention", ["Art", "Dance", "Fashion"], "DATING"],
+  ["Tara Joshi", "25 Mar 1996", "SINGLE", "Hyderabad", "tara.joshi3096@gmail.com", "Career-focused but believes in making time for love.", "Long-term relationship", ["Fitness", "Travel", "Podcasts"], "RELATIONSHIP"],
+  ["Sneha Reddy", "9 Jul 2002", "SINGLE", "Chennai", "sneha.reddy2402@gmail.com", "Warm, friendly and a fan of spontaneous plans.", "Serious relationship", ["Music", "Food", "Beach trips"], "RELATIONSHIP"],
+  ["Diya Agarwal", "18 Oct 1999", "SINGLE", "Kolkata", "diya.agarwal2699@gmail.com", "Loves art, meaningful conversations and discovering hidden cafés.", "Meaningful connection", ["Art", "Cafés", "Reading"], "RELATIONSHIP"],
+  ["Neha Bansal", "2 Feb 1994", "DIVORCED", "Gurugram", "neha.bansal3294@gmail.com", "Strong, independent and looking for a compatible partner.", "Serious relationship", ["Travel", "Fitness", "Cooking"], "RELATIONSHIP"],
+  ["Alisha Khan", "30 Nov 2002", "SINGLE", "Bhopal", "alisha.khan2302@gmail.com", "Curious, expressive and enjoys meeting people from different backgrounds.", "Dating with intention", ["Movies", "Music", "Languages"], "DATING"],
+  ["Mahi Sethi", "17 Jan 2001", "SINGLE", "Noida", "mahi.sethi2501@gmail.com", "Simple, positive and believes the little things matter.", "Long-term relationship", ["Cooking", "Shopping", "Nature"], "RELATIONSHIP"],
+  ["Sanya Chawla", "21 May 1998", "SINGLE", "Dehradun", "sanya.chawla2898@gmail.com", "Outdoor lover who enjoys peaceful places and good company.", "Serious relationship", ["Hiking", "Travel", "Photography"], "RELATIONSHIP"],
+  ["Kritika Roy", "4 Aug 1999", "SINGLE", "Kolkata", "kritika.roy2799@gmail.com", "Creative professional with a love for culture and conversations.", "Meaningful connection", ["Design", "Music", "Museums"], "RELATIONSHIP"],
+  ["Avni Thakur", "12 Dec 2004", "SINGLE", "Shimla", "avni.thakur2104@gmail.com", "Cheerful student who loves learning and exploring.", "Casual dating", ["Books", "Art", "Travel"], "DATING"],
+  ["Sakshi Jain", "7 Mar 1993", "SEPARATED", "Indore", "sakshi.jain3393@gmail.com", "Emotionally mature and looking for an honest connection.", "Serious relationship", ["Wellness", "Reading", "Travel"], "RELATIONSHIP"],
+  ["Zoya Ali", "26 Oct 2001", "SINGLE", "Hyderabad", "zoya.ali2401@gmail.com", "Adventurous, open-minded and enjoys trying new things.", "Long-term relationship", ["Food", "Travel", "Music"], "RELATIONSHIP"],
+  ["Esha Tiwari", "16 Apr 2000", "SINGLE", "Varanasi", "esha.tiwari2600@gmail.com", "A thoughtful person who enjoys meaningful conversations and peaceful evenings.", "Serious relationship", ["Reading", "Music", "Travel"], "RELATIONSHIP"],
+  ["Myra Arora", "5 Sep 1997", "SINGLE", "Delhi", "myra.arora2997@gmail.com", "Stylish, ambitious and always up for a new adventure.", "Long-term relationship", ["Fashion", "Fitness", "Travel"], "RELATIONSHIP"],
+  ["Aditi Nair", "23 Dec 2001", "SINGLE", "Kochi", "aditi.nair2401@gmail.com", "Calm, curious and loves discovering new food and places.", "Meaningful connection", ["Cooking", "Food", "Photography"], "RELATIONSHIP"],
+  ["Lavanya Mishra", "10 Jun 1996", "DIVORCED", "Kanpur", "lavanya.mishra3096@gmail.com", "Independent and optimistic, looking for a genuine partnership.", "Serious relationship", ["Gardening", "Movies", "Wellness"], "RELATIONSHIP"],
+  ["Radhika Das", "28 Jan 1999", "SINGLE", "Bhubaneswar", "radhika.das2799@gmail.com", "Friendly, creative and enjoys celebrating life's small moments.", "Long-term relationship", ["Art", "Music", "Cooking"], "RELATIONSHIP"],
+  ["Kiara Oberoi", "13 Oct 2000", "SINGLE", "Mumbai", "kiara.oberoi2500@gmail.com", "Outgoing, confident and passionate about exploring the world.", "Dating with intention", ["Travel", "Dance", "Shopping"], "DATING"],
+  ["Shruti Iyer", "9 Mar 1994", "SEPARATED", "Bengaluru", "shruti.iyer3294@gmail.com", "Mature, warm and values honesty, trust and companionship.", "Serious relationship", ["Yoga", "Books", "Nature"], "RELATIONSHIP"],
+].map((item, index) => ({ number: index + 1, displayName: item[0] as string, dateOfBirth: item[1] as string, maritalStatus: item[2] as "SINGLE", city: item[3] as string, email: item[4] as string, bio: item[5] as string, relationshipIntent: item[6] as string, interests: item[7] as string[], lookingFor: item[8] as "CHAT" | "DATING" | "RELATIONSHIP" }));
 const demoImageByKey: Record<string, string> = { ishita: "/demo-profiles/ishita.png", naina: "/demo-profiles/naina.png", simran: "/demo-profiles/simran.png", avani: "/demo-profiles/avani.png", riya: "/demo-profiles/riya.png", kavya: "/demo-profiles/kavya.png", pihu: "/demo-profiles/pihu.png", ananya: "/demo-profiles/ananya.png", zoya: "/demo-profiles/zoya.png", manya: "/demo-profiles/manya.png", shruti: "/demo-profiles/shruti.png", leela: "/demo-profiles/leela.png", sana: "/demo-profiles/sana.png", diya: "/demo-profiles/ishita.png", aarohi: "/demo-profiles/naina.png", mira: "/demo-profiles/mira.png", tanvi: "/demo-profiles/tanvi.png", suhani: "/demo-profiles/suhani.png", alia: "/demo-profiles/alia.png", harini: "/demo-profiles/harini.png", lavanya: "/demo-profiles/lavanya.png", ishani: "/demo-profiles/ishani.png", navya: "/demo-profiles/navya.png", trisha: "/demo-profiles/trisha.png", radhika: "/demo-profiles/radhika.png", arjun: "/demo-profiles/arjun.png", vihaan: "/demo-profiles/vihaan.png", aditya: "/demo-profiles/aditya.png", ishaan: "/demo-profiles/ishaan.png", neel: "/demo-profiles/neel.png", rahul: "/demo-profiles/rahul.png", vikram: "/demo-profiles/vikram.png", rohit: "/demo-profiles/rohit.png", manav: "/demo-profiles/manav.png", samar: "/demo-profiles/samar.png", yuvraj: "/demo-profiles/yuvraj.png", veer: "/demo-profiles/veer.png", aaryan: "/demo-profiles/aaryan.png" };
 demoImageByKey.isha = "/demo-profiles/isha-resort.png";
 demoImageByKey.anika = "/demo-profiles/anika-resort.png";
@@ -90,6 +120,22 @@ async function main() {
     users.set(item.key, user);
     const profileImageUrl = demoImageByKey[item.key] ?? "/og-image.png";
     await prisma.profile.upsert({ where: { userId: user.id }, update: { bio: item.bio, profileImageUrls: [profileImageUrl], interests: item.interests, occupation: item.occupation, education: item.education, languages: item.languages, relationshipIntent: item.relationshipIntent, genderPreference: item.key === "aanya" ? "MALE" : null, agePreferenceMin: 24, agePreferenceMax: 45, locationPreference: item.city, lookingFor: item.lookingFor, visibility: "VISIBLE", showOnlineStatus: true, onlineStatus: item.onlineStatus, allowInterests: true }, create: { userId: user.id, profileImageUrls: [profileImageUrl], bio: item.bio, interests: item.interests, occupation: item.occupation, education: item.education, languages: item.languages, relationshipIntent: item.relationshipIntent, genderPreference: item.key === "aanya" ? "MALE" : null, agePreferenceMin: 24, agePreferenceMax: 45, locationPreference: item.city, lookingFor: item.lookingFor, visibility: "VISIBLE", showOnlineStatus: true, onlineStatus: item.onlineStatus, allowInterests: true } });
+    await prisma.notificationPreference.upsert({ where: { userId: user.id }, update: {}, create: { userId: user.id } });
+  }
+
+  for (const item of memberUsers) {
+    const user = await prisma.user.upsert({
+      where: { email: item.email },
+      update: { displayName: item.displayName, dateOfBirth: new Date(`${item.dateOfBirth} 00:00:00`), gender: "FEMALE", city: item.city, maritalStatus: item.maritalStatus, lookingFor: item.lookingFor, isEmailVerified: true, status: "ACTIVE", termsVersion: TERMS_VERSION, acceptedAt: new Date() },
+      create: { email: item.email, passwordHash: await bcrypt.hash(crypto.randomBytes(24).toString("hex"), 12), displayName: item.displayName, dateOfBirth: new Date(`${item.dateOfBirth} 00:00:00`), gender: "FEMALE", city: item.city, maritalStatus: item.maritalStatus, lookingFor: item.lookingFor, isEmailVerified: true, status: "ACTIVE", termsVersion: TERMS_VERSION, acceptedAt: new Date() },
+      select: { id: true },
+    });
+    const image = `/member-profiles/${28 - item.number}.png`;
+    await prisma.profile.upsert({
+      where: { userId: user.id },
+      update: { bio: item.bio, profileImageUrls: [image], interests: item.interests, languages: ["English", "Hindi"], relationshipIntent: item.relationshipIntent, agePreferenceMin: 21, agePreferenceMax: 45, locationPreference: item.city, lookingFor: item.lookingFor, visibility: "VISIBLE", showOnlineStatus: true, onlineStatus: true, allowInterests: true },
+      create: { userId: user.id, bio: item.bio, profileImageUrls: [image], interests: item.interests, languages: ["English", "Hindi"], relationshipIntent: item.relationshipIntent, agePreferenceMin: 21, agePreferenceMax: 45, locationPreference: item.city, lookingFor: item.lookingFor, visibility: "VISIBLE", showOnlineStatus: true, onlineStatus: true, allowInterests: true },
+    });
     await prisma.notificationPreference.upsert({ where: { userId: user.id }, update: {}, create: { userId: user.id } });
   }
 
