@@ -28,8 +28,8 @@ body {
 
 /* Preserve the complete portrait instead of cropping faces and body framing. */
 img.object-cover {
-  object-fit: contain !important;
-  background: #f6efe7;
+  object-fit: cover !important;
+  background: #eadbd5;
 }
 
 a {
@@ -58,6 +58,23 @@ button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
+
+.skip-link {
+  position: fixed;
+  left: 1rem;
+  top: 0.75rem;
+  z-index: 100;
+  transform: translateY(-180%);
+  border-radius: 999px;
+  background: #c8a96b;
+  padding: 0.75rem 1rem;
+  color: #2b2024;
+  font-size: 0.875rem;
+  font-weight: 700;
+  transition: transform 160ms ease;
+}
+
+.skip-link:focus { transform: translateY(0); }
 
 :focus-visible {
   outline: 3px solid rgba(200, 169, 107, 0.9);
@@ -106,6 +123,29 @@ main > * {
   background: rgba(255, 255, 255, 0.72);
   box-shadow: 0 16px 36px rgba(25, 23, 27, 0.06);
 }
+
+.marketplace-shell { background: linear-gradient(180deg, #fffaf5 0%, #f6efe7 55%, #fffaf5 100%); }
+.trust-chip { display: inline-flex; align-items: center; gap: .45rem; border: 1px solid rgba(90,31,47,.12); border-radius: 999px; background: rgba(255,255,255,.82); padding: .55rem .8rem; font-size: .72rem; font-weight: 700; color: #5a1f2f; }
+.trust-chip::before { content: "✓"; display: inline-grid; width: 1.1rem; height: 1.1rem; place-items: center; border-radius: 999px; background: #c8a96b; color: #2b2024; font-size: .7rem; }
+.profile-card { overflow: hidden; border: 1px solid rgba(25,23,27,.1); border-radius: 1.25rem; background: rgba(255,255,255,.92); box-shadow: 0 12px 30px rgba(25,23,27,.07); transition: transform .2s ease, box-shadow .2s ease; }
+.profile-card:hover { transform: translateY(-4px); box-shadow: 0 18px 38px rgba(25,23,27,.13); }
+
+/* Apply the marketplace treatment to existing discovery/profile cards too. */
+article.overflow-hidden.rounded-3xl { border-radius: 1.25rem; background: rgba(255,255,255,.92); box-shadow: 0 12px 30px rgba(25,23,27,.07); }
+article.overflow-hidden.rounded-3xl:hover { transform: translateY(-4px); box-shadow: 0 18px 38px rgba(25,23,27,.13); }
+article.relative.rounded-3xl { border-radius: 1.25rem; box-shadow: 0 12px 30px rgba(25,23,27,.07); }
+
+/* Shared marketplace language for auth, profile and plans screens. */
+section.mx-auto.max-w-xl > div.rounded-\[2rem\] { border-radius: 1.5rem; background: rgba(255,255,255,.9); box-shadow: 0 18px 44px rgba(25,23,27,.08); }
+section.mx-auto.max-w-5xl > div.overflow-hidden.rounded-3xl { border-radius: 1.5rem; background: rgba(255,255,255,.94); }
+section.mx-auto.max-w-7xl article.relative.rounded-3xl { transition: transform .2s ease, box-shadow .2s ease; }
+section.mx-auto.max-w-7xl article.relative.rounded-3xl:hover { transform: translateY(-4px); box-shadow: 0 18px 38px rgba(25,23,27,.13); }
+.marketplace-shell .profile-input, section.mx-auto.max-w-7xl .profile-input { background: #fff; border-color: rgba(90,31,47,.16); }
+.marketplace-shell button:not(:disabled):hover, section.mx-auto.max-w-xl button:not(:disabled):hover { filter: brightness(.96); transform: translateY(-1px); }
+
+.marketplace-shell button, .marketplace-shell a, .marketplace-shell input, .marketplace-shell select { transition: border-color .18s ease, background-color .18s ease, color .18s ease, box-shadow .18s ease, transform .18s ease; }
+.marketplace-shell input:invalid:not(:placeholder-shown) { border-color: rgba(153, 27, 27, .4); }
+.marketplace-shell input:valid:not(:placeholder-shown) { border-color: rgba(22, 101, 52, .25); }
 
 .skeleton {
   position: relative;
